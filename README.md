@@ -49,7 +49,7 @@ In the template below, you can either render the entire template, or just the `h
 
   <body>
     {% fragment "header" -%}
-    <header>{{ header }}</header>
+    <header>{{ headerText }}</header>
     {%- endfragment %} {{ content }}
   </body>
 </html>
