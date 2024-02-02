@@ -33,7 +33,7 @@ const header = fraglates.render("my-template.html#header", {
 });
 ```
 
-> **Note:** Fraglets uses a caching mechanism on the returned instance. **DO NOT** destructure the `render` method or the caching will break (i.e. `const { render } = new Fraglates(...);`).
+> **Note:** Fraglates uses a caching mechanism on the returned instance. **DO NOT** destructure the `render` method or the caching will break (i.e. `const { render } = new Fraglates(...);`).
 
 ## Templating
 
