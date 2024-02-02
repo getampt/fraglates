@@ -1,0 +1,27 @@
+<html lang="en">
+  <head>
+    <title>Messy Fragments Template</title>
+  </head>
+  <body>
+
+    {% fragment "nobreaks" %}<h1>{{ text }}</h1>{% endfragment %}
+    
+    {% fragment "leadbreak" -%}
+    <h2>{{ text }}</h2>{% endfragment %}
+    
+    {% fragment "endbreak" %}<h3>{{ text }}</h3>
+    {% endfragment -%}
+    
+    {% fragment "extravalues","va1","var2"  %}
+    <h4>{{ text }}</h4>
+    {%- endfragment %}
+
+    {% 
+      fragment "splitblock"
+    -%}
+    <h5>{{ text }}</h5>
+    {%
+      endfragment
+    %}
+  </body>
+</html>

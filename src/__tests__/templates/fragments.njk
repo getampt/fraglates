@@ -1,0 +1,18 @@
+<html lang="en">
+  <head>
+    <title>Fragments Template</title>
+  </head>
+  <body>
+    {%- fragment "level1" %}
+      <h1>{{ lvl1 }}</h1>
+      {%- fragment "level2" %}
+        <h2>{{ lvl2 }}</h2>
+        {%- fragment "level3" %}
+          <h3>{{ lvl3 }}</h3>
+        {% endfragment -%}
+        <h2>End H2</h2>
+      {% endfragment -%}
+      <h1>End H1</h1>
+    {% endfragment -%}
+  </body>
+</html>
