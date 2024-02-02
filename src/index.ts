@@ -7,12 +7,14 @@ interface FraglatesConfig {
   trimBlocks?: boolean;
   lstripBlocks?: boolean;
   trim?: boolean;
+  raw?: any;
 }
 
 class Fraglates {
   env: nunjucks.Environment;
   fragmentExtension: FragmentExtension;
   trim: boolean;
+  raw: Function;
 
   constructor(public config: FraglatesConfig = {}) {
     // Create a new nunjucks environment
@@ -30,6 +32,9 @@ class Fraglates {
 
     // Set the trim option
     this.trim = config.trim === false ? false : true;
+
+    // Default raw function
+    this.raw = typeof config.raw == "function" ? config.raw : (x) => x;
 
     return new Proxy(this, {
       get(target, propKey, receiver) {
@@ -103,6 +108,11 @@ class Fraglates {
         throw new Error(`Error rendering template: ${error.message}`);
       }
     }
+  }
+
+  component(template: string, raw?: any) {
+    raw = raw || this.raw;
+    return (props) => raw(this.render(template, props));
   }
 }
 

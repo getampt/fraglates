@@ -1,7 +1,7 @@
 {
   "name": "fraglates",
-  "version": "0.0.2",
-  "description": "An open source templating engine for generating dynamic hypertext fragments.",
+  "version": "0.0.3",
+  "description": "An open source templating engine for generating server-side hypertext templates and fragments.",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

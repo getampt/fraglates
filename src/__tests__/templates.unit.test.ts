@@ -1,5 +1,11 @@
 import * as fs from "fs";
 import Fraglates from "../index";
+import { get } from "http";
+
+const getVar = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  return "async var";
+};
 
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
@@ -110,5 +116,19 @@ describe("Template rendering", () => {
       text: "Test",
     });
     expect(splitblock).toBe(`<h5>Test</h5>`);
+  });
+
+  it("should await data and return a promise", async () => {
+    const result = fraglates.render("simple.njk#header", {
+      header: await getVar(),
+    });
+
+    expect(result).toBe(`<header>async var</header>`);
+  });
+
+  it("should componentize a template", () => {
+    const TestComponent = fraglates.component("simple.njk#header");
+    const result = TestComponent({ header: "Test Header" });
+    expect(result).toBe(`<header>Test Header</header>`);
   });
 });
