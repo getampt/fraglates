@@ -25,7 +25,7 @@ class Fraglates {
     });
 
     // Instantiate the fragment extension
-    this.fragmentExtension = new FragmentExtension(this.env);
+    this.fragmentExtension = new FragmentExtension(this);
 
     // Add the fragment extension to the nunjucks environment
     this.env.addExtension("Fragment", this.fragmentExtension);

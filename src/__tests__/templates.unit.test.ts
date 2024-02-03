@@ -118,7 +118,7 @@ describe("Template rendering", () => {
     expect(splitblock).toBe(`<h5>Test</h5>`);
   });
 
-  it("should await data and return a promise", async () => {
+  it("should await the data before returning the template", async () => {
     const result = fraglates.render("simple.njk#header", {
       header: await getVar(),
     });

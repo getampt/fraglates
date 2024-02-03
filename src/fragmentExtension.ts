@@ -5,12 +5,15 @@ export class FragmentExtension {
   cache: any;
   fragments: any;
   env: nunjucks.Environment;
+  render: nunjucks.Environment["render"];
 
-  constructor(env: nunjucks.Environment) {
+  constructor(ctx) {
     this.tags = ["fragment"];
     this.cache = {};
     this.fragments = {};
-    this.env = env;
+    this.env = ctx.env;
+    // Use our render function for caching
+    this.render = ctx.render;
   }
 
   parse(parser: any, nodes: any) {
@@ -76,7 +79,7 @@ export class FragmentExtension {
     ) {
       // TODO: add some error handling here
       if (process.env.BENCHMARK) console.debug("Parse the template first");
-      nunjucks.render(templateName, { _templateName: templateName });
+      this.render(templateName, { _templateName: templateName });
     }
 
     // Render the fragment with the context

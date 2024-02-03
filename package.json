@@ -1,6 +1,6 @@
 {
   "name": "fraglates",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "An open source templating engine for generating server-side hypertext templates and fragments.",
   "main": "dist/index.js",
   "type": "module",
@@ -28,6 +28,10 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getampt/fraglates.git"
   },
   "files": [
     "dist/"

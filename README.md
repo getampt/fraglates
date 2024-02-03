@@ -43,7 +43,7 @@ The [templating syntax](https://mozilla.github.io/nunjucks/templating.html) is t
 
 In the template below, you can either render the entire template, or just the `header` fragment using the `render` method.
 
-```html
+```nunjucks
 <!-- my-template.html -->
 <html lang="en">
   <head>
@@ -99,7 +99,7 @@ Functional components automatically passes attributes as data into the template 
 
 Define a template with children:
 
-```html
+```nunjucks
 <!-- simple-div.html -->
 <div class="{{ class }}">{{ children | safe }}</div>
 ```
@@ -143,6 +143,20 @@ fraglates.addFilter("upper", (str) => str.toUpperCase());
 
 // or on the .env property
 fraglates.env.addFilter("upper", (str) => str.toUpperCase());
+```
+
+## Asynchronous Support
+
+Fraglates aggressively caches templates using Nunjuck's `eagerCompile` setting. Templates are compiled and cached as JavaScript functions to ensure maximum performance. This means that _asynchronous_ filters are **NOT** supported. All data must be resolved before being passed into the `render` method.
+
+```typescript
+const foo = await someAsyncCall();
+
+fraglates.render("my-template.html", {
+  foo: foo, // foo is already resolved
+  // or you can just await the async call here
+  bar: await someAsyncFunction(),
+});
 ```
 
 ## Contributions & Feedback
