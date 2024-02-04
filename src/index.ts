@@ -10,9 +10,16 @@ interface FraglatesConfig {
   raw?: any;
 }
 
+// Create a cache for the templates and fragments
+const cache = {
+  templates: {},
+  fragments: {},
+};
+
 class Fraglates {
   env: nunjucks.Environment;
   fragmentExtension: FragmentExtension;
+  fragments: any;
   trim: boolean;
   raw: Function;
 
@@ -25,7 +32,7 @@ class Fraglates {
     });
 
     // Instantiate the fragment extension
-    this.fragmentExtension = new FragmentExtension(this);
+    this.fragmentExtension = new FragmentExtension(this, cache);
 
     // Add the fragment extension to the nunjucks environment
     this.env.addExtension("Fragment", this.fragmentExtension);
@@ -45,16 +52,7 @@ class Fraglates {
         } else {
           // For undefined properties, return a function that acts as the undefined method
           if (typeof target.env[propKey] === "function") {
-            return (...args) => {
-              // console.log(receiver);
-
-              // console.log(
-              //   `Method "${String(propKey)}" does not exist. Arguments:`,
-              //   args
-              // );
-
-              return target.env[propKey](...args);
-            };
+            return (...args) => target.env[propKey](...args);
           } else {
             console.error(`"${String(propKey)}" does not exist.`);
             // If the property doesn't exist, return undefined
@@ -79,21 +77,20 @@ class Fraglates {
 
     try {
       // Check the cache for the template
-      if (
-        frag == undefined &&
-        this.fragmentExtension.cache[temp] == undefined
-      ) {
-        if (process.env.BENCHMARK) console.time("get/compile template");
+      if (frag == undefined && cache.templates[temp] == undefined) {
+        if (process.env.BENCHMARK)
+          console.time(`get/compile template: ${temp}`);
         // If missing, get and compile the template and store in the cache
-        this.fragmentExtension.cache[temp] = this.env.getTemplate(temp, true);
-        if (process.env.BENCHMARK) console.timeEnd("get/compile template");
+        cache.templates[temp] = this.env.getTemplate(temp, true);
+        if (process.env.BENCHMARK)
+          console.timeEnd(`get/compile template: ${temp}`);
       }
 
       if (process.env.BENCHMARK) console.time("render template");
       const output =
         frag !== undefined
           ? this.fragmentExtension.getFragment(temp, frag, context)
-          : this.fragmentExtension.cache[temp].render(
+          : cache.templates[temp].render(
               Object.assign(context, { _templateName: temp })
             );
       if (process.env.BENCHMARK) console.timeEnd("render template");

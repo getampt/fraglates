@@ -1,0 +1,16 @@
+<html lang="en">
+  <head>
+    <title>Nested Loops Template</title>
+  </head>
+ <body>
+    {% fragment 'header' %}
+      <h1>{{ headerText | upperx }}</h1>
+    {% endfragment %}
+
+    {% for x in items %}
+      {% fragment 'inloop' %}
+        <p id="{{ x }}">{{ x }}</p>
+      {% endfragment %}
+    {% endfor %}
+  </body>
+</html>

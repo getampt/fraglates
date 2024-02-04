@@ -2,18 +2,18 @@ import nunjucks from "nunjucks";
 
 export class FragmentExtension {
   tags: string[];
-  cache: any;
-  fragments: any;
   env: nunjucks.Environment;
   ctx: any;
+  cache: any;
+  templateName?: string;
 
-  constructor(ctx) {
+  constructor(ctx, cache, templateName?) {
     this.tags = ["fragment"];
-    this.cache = {};
-    this.fragments = {};
     this.env = ctx.env;
     // Use our render function for caching
     this.ctx = ctx;
+    this.cache = cache;
+    this.templateName = templateName;
   }
 
   parse(parser: any, nodes: any) {
@@ -33,6 +33,28 @@ export class FragmentExtension {
       end.colno
     );
     if (process.env.BENCHMARK) console.timeEnd(`extract raw string`);
+
+    // If a templateName exists, it means we're working around the
+    // in-loop fragment issue
+    if (this.templateName) {
+      const name = args.children[0].value;
+
+      // If the fragment isn't cached
+      if (!this.cache.fragments[this.templateName][name]) {
+        if (process.env.BENCHMARK) console.time(`compile fragment '${name}'`);
+        // Compile the raw string using the passed env and store in the cache
+        try {
+          this.cache.fragments[this.templateName][name] = nunjucks.compile(
+            rawStr,
+            this.env // render with the main env
+          );
+        } catch (e) {
+          console.log(`Error shortcut compiling fragment '${name}'`);
+        }
+        if (process.env.BENCHMARK)
+          console.timeEnd(`compile fragment '${name}'`);
+      }
+    }
 
     // Custom node to add the raw string to the args
     let additionalInfo = new nodes.Literal(0, 0, rawStr);
@@ -56,16 +78,19 @@ export class FragmentExtension {
     const templateName = context.ctx._templateName;
 
     // If a cache for the template doesn't exist, create it
-    if (!this.fragments[templateName]) {
-      this.fragments[templateName] = {};
+    if (!this.cache.fragments[templateName]) {
+      this.cache.fragments[templateName] = {};
     }
 
     // If the fragment isn't cached
-    if (!this.fragments[templateName][name]) {
-      if (process.env.BENCHMARK) console.time(`compile fragment ${name}`);
+    if (!this.cache.fragments[templateName][name]) {
+      if (process.env.BENCHMARK) console.time(`compile fragment '${name}'`);
       // Compile the raw string using the passed env and store in the cache
-      this.fragments[templateName][name] = nunjucks.compile(rawStr, this.env);
-      if (process.env.BENCHMARK) console.timeEnd(`compile fragment ${name}`);
+      this.cache.fragments[templateName][name] = nunjucks.compile(
+        rawStr,
+        this.env
+      );
+      if (process.env.BENCHMARK) console.timeEnd(`compile fragment '${name}'`);
     }
 
     // Return the executed fragment to the main template
@@ -74,17 +99,52 @@ export class FragmentExtension {
 
   getFragment(templateName: string, fragmentName: string, context: any) {
     if (
-      !this.fragments[templateName] ||
-      !this.fragments[templateName][fragmentName]
+      !this.cache.fragments[templateName] ||
+      !this.cache.fragments[templateName][fragmentName]
     ) {
       // TODO: add some error handling here
       if (process.env.BENCHMARK) console.debug("Parse the template first");
       this.ctx.render(templateName, { _templateName: templateName });
+
+      // If the fragment still isn't found, then it might be nested in
+      // a loop and isn't getting parsed
+      if (this.cache.fragments[templateName][fragmentName] === undefined) {
+        // console.log(
+        //   `Fragment '${fragmentName}' not found in '${templateName}'`
+        // );
+
+        // Create a new nunjucks environment with the template name embedded
+        let tmpEnv = nunjucks.configure(
+          this.ctx.config.templates,
+          Object.assign({ templateName }, this.ctx.opts)
+        );
+
+        // Copy filters and globals from the main environment (I hate this)
+        tmpEnv["filters"] = this.ctx.env["filters"];
+        tmpEnv["globals"] = this.ctx.env["globals"];
+
+        const tmpFragExt = new FragmentExtension(
+          this.ctx,
+          this.cache,
+          templateName
+        );
+        // Add the fragment extension to the nunjucks environment
+        tmpEnv.addExtension("Fragment", tmpFragExt);
+        tmpEnv.render(templateName, { _templateName: templateName });
+        tmpEnv = null;
+      }
+    }
+
+    if (this.cache.fragments[templateName][fragmentName] === undefined) {
+      throw new Error(
+        `Fragment '${fragmentName}' not found in '${templateName}'`
+      );
     }
 
     // Render the fragment with the context
     if (process.env.BENCHMARK) console.time(`render fragment ${fragmentName}`);
-    const fragment = this.fragments[templateName][fragmentName].render(context);
+    const fragment =
+      this.cache.fragments[templateName][fragmentName].render(context);
     if (process.env.BENCHMARK)
       console.timeEnd(`render fragment ${fragmentName}`);
     return fragment;

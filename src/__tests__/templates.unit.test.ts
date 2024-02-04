@@ -2,6 +2,8 @@ import * as fs from "fs";
 import Fraglates from "../index";
 import { get } from "http";
 
+// process.env.BENCHMARK = "true";
+
 const getVar = async () => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   return "async var";
@@ -10,6 +12,10 @@ const getVar = async () => {
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./src/__tests__/templates",
+});
+
+fraglates.env.addFilter("upperx", (str) => {
+  return "testing: " + str;
 });
 
 const renderedPath = "./src/__tests__/rendered";
@@ -130,5 +136,14 @@ describe("Template rendering", () => {
     const TestComponent = fraglates.component("simple.njk#header");
     const result = TestComponent({ header: "Test Header" });
     expect(result).toBe(`<header>Test Header</header>`);
+  });
+
+  it("should cache fragments within loops", async () => {
+    const result = fraglates.render("nested-loops.njk#inloop", {
+      headerText: "Header",
+      items: ["123", "456", "789"],
+      x: "test",
+    });
+    expect(result).toBe(`<p id="test">test</p>`);
   });
 });
