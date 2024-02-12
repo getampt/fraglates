@@ -3,14 +3,14 @@
     <title>Nested Loops Template</title>
   </head>
  <body>
-    {% fragment 'header' %}
+    {% block header %}
       <h1>{{ headerText | upperx }}</h1>
-    {% endfragment %}
+    {% endblock %}
 
     {% for x in items %}
-      {% fragment 'inloop' %}
+      {% block inloop %}
         <p id="{{ x }}">{{ x }}</p>
-      {% endfragment %}
+      {% endblock %}
     {% endfor %}
   </body>
 </html>

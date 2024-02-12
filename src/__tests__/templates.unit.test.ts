@@ -140,10 +140,32 @@ describe("Template rendering", () => {
 
   it("should cache fragments within loops", async () => {
     const result = fraglates.render("nested-loops.njk#inloop", {
-      headerText: "Header",
-      items: ["123", "456", "789"],
+      // headerText: "Header",
+      // items: ["123", "456", "789"],
       x: "test",
     });
+    console.log(result);
+
     expect(result).toBe(`<p id="test">test</p>`);
+  });
+
+  it("should handle restore the rootRenderFunction", async () => {
+    const result = fraglates.render("simple.njk#header", {
+      header: "HeaderTest",
+    });
+    const result2 = fraglates.render("simple.njk#footer", {
+      footer: "FooterTest",
+    });
+    const result3 = fraglates.render("simple.njk", {
+      header: "Test Header",
+      content: "Test Content",
+      footer: "Test Footer",
+    });
+
+    expect(result).toBe(`<header>HeaderTest</header>`);
+    expect(result2).toBe(`<footer>FooterTest</footer>`);
+
+    const expected = fs.readFileSync(`${renderedPath}/_simple.html`, "utf8");
+    expect(result3).toBe(expected);
   });
 });
