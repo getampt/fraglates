@@ -3,16 +3,16 @@
     <title>Fragments Template</title>
   </head>
   <body>
-    {%- fragment "level1" %}
+    {%- block level1 %}
       <h1>{{ lvl1 }}</h1>
-      {%- fragment "level2" %}
+      {%- block level2 %}
         <h2>{{ lvl2 }}</h2>
-        {%- fragment "level3" %}
+        {%- block level3 %}
           <h3>{{ lvl3 }}</h3>
-        {% endfragment -%}
+        {% endblock -%}
         <h2>End H2</h2>
-      {% endfragment -%}
+      {% endblock -%}
       <h1>End H1</h1>
-    {% endfragment -%}
+    {% endblock -%}
   </body>
 </html>

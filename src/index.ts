@@ -1,5 +1,4 @@
 import nunjucks from "nunjucks";
-import { FragmentExtension } from "./fragmentExtension.js";
 
 interface FraglatesConfig {
   templates?: string;
@@ -10,18 +9,13 @@ interface FraglatesConfig {
   raw?: any;
 }
 
-// Create a cache for the templates and fragments
-const cache = {
-  templates: {},
-  fragments: {},
-};
+// Create a cache for the templates
+const cache = {};
 
 class Fraglates {
   env: nunjucks.Environment;
-  fragmentExtension: FragmentExtension;
-  fragments: any;
-  trim: boolean;
   raw: Function;
+  trim: boolean;
 
   constructor(public config: FraglatesConfig = {}) {
     // Create a new nunjucks environment
@@ -31,18 +25,13 @@ class Fraglates {
       lstripBlocks: config.lstripBlocks || false,
     });
 
-    // Instantiate the fragment extension
-    this.fragmentExtension = new FragmentExtension(this, cache);
-
-    // Add the fragment extension to the nunjucks environment
-    this.env.addExtension("Fragment", this.fragmentExtension);
-
-    // Set the trim option
-    this.trim = config.trim === false ? false : true;
-
     // Default raw function
     this.raw = typeof config.raw == "function" ? config.raw : (x) => x;
 
+    // Default trim setting
+    this.trim = config.trim === false ? false : true;
+
+    // Return a proxy to the environment
     return new Proxy(this, {
       get(target, propKey, receiver) {
         // Check if the property exists on the target object
@@ -63,36 +52,40 @@ class Fraglates {
     });
   }
 
-  // TODO: Decide if we need this
-  // Add a global function to the nunjucks environment to get a fragment
-  // env.addGlobal("getFragment", (templateName, fragmentName) =>
-  //   fragmentExtension.getFragment(templateName, fragmentName)
-  // );
-
   // Render a template function
   render(template: string, context: any) {
     const templateParts = template.split("#");
     const temp = templateParts[0].trim();
     const frag = templateParts[1]?.trim();
 
+    let output;
+
     try {
       // Check the cache for the template
-      if (frag == undefined && cache.templates[temp] == undefined) {
+      if (cache[temp] == undefined) {
         if (process.env.BENCHMARK)
           console.time(`get/compile template: ${temp}`);
         // If missing, get and compile the template and store in the cache
-        cache.templates[temp] = this.env.getTemplate(temp, true);
+        cache[temp] = this.env.getTemplate(temp, true);
         if (process.env.BENCHMARK)
           console.timeEnd(`get/compile template: ${temp}`);
       }
 
       if (process.env.BENCHMARK) console.time("render template");
-      const output =
-        frag !== undefined
-          ? this.fragmentExtension.getFragment(temp, frag, context)
-          : cache.templates[temp].render(
-              Object.assign(context, { _templateName: temp })
-            );
+
+      if (frag !== undefined) {
+        // Make a copy of the root render function
+        const root = cache[temp].rootRenderFunc;
+        // Temporarily replace the root render function with the block function
+        cache[temp].rootRenderFunc = cache[temp].blocks[frag];
+        // Render the block
+        output = cache[temp].render(context);
+        // Restore the root render function
+        cache[temp].rootRenderFunc = root;
+      } else {
+        output = cache[temp].render(context);
+      }
+
       if (process.env.BENCHMARK) console.timeEnd("render template");
       return this.trim ? output.trim() : output;
     } catch (error) {

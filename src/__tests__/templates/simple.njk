@@ -7,13 +7,13 @@
   </head>
 
   <body>
-    {% fragment "header" -%}
+    {% block header -%}
     <header>{{ header }}</header>
-    {%- endfragment %}
+    {%- endblock %}
     {{ content }}
-    {% fragment "footer" -%}
+    {% block footer -%}
     <footer>{{ footer }}</footer>
-    {%- endfragment %}
+    {%- endblock %}
   </body>
 
 </html>

@@ -39,7 +39,7 @@ const header = fraglates.render("my-template.html#header", {
 
 Fraglates uses [Nunjucks](https://mozilla.github.io/nunjucks/) as the core templating engine. An instance of Fraglates returns a [Nunjucks Environment](https://mozilla.github.io/nunjucks/api.html#environment) and supports all methods such as `addFilter()`, `addGlobal()`, etc.
 
-The [templating syntax](https://mozilla.github.io/nunjucks/templating.html) is the same as Nunjucks, with one important addition: the **`{% fragment 'name' %}`** and **`{% endfragment %}`** block.
+The [templating syntax](https://mozilla.github.io/nunjucks/templating.html) is the same as Nunjucks, with one important addition: content wrapped in **`{% block blockName %}`** and **`{% endblock %}`** tags are accessible as fragments.
 
 In the template below, you can either render the entire template, or just the `header` fragment using the `render` method.
 
@@ -53,16 +53,16 @@ In the template below, you can either render the entire template, or just the `h
   </head>
 
   <body>
-    {% fragment "header" -%}
+    {% block header -%}
     <header>{{ headerText }}</header>
-    {%- endfragment %}
+    {%- endblock %}
 
     <div>{{ content }}</div>
   </body>
 </html>
 ```
 
-> Note that `fragment` blocks can be nested and include any Nunjucks templating logic like conditionals, filters, includes, etc.
+> Note that `block`s can be nested and include any Nunjucks templating logic like conditionals, filters, includes, etc.
 
 ## Functional Components with JSX
 

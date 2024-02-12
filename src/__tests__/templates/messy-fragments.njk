@@ -4,24 +4,24 @@
   </head>
   <body>
 
-    {% fragment "nobreaks" %}<h1>{{ text }}</h1>{% endfragment %}
+    {% block nobreaks %}<h1>{{ text }}</h1>{% endblock %}
     
-    {% fragment "leadbreak" -%}
-    <h2>{{ text }}</h2>{% endfragment %}
+    {% block leadbreak -%}
+    <h2>{{ text }}</h2>{% endblock %}
     
-    {% fragment "endbreak" %}<h3>{{ text }}</h3>
-    {% endfragment -%}
+    {% block endbreak %}<h3>{{ text }}</h3>
+    {% endblock -%}
     
-    {% fragment "extravalues","va1","var2"  %}
+    {% block extravalues  %}{# Extra values don't work in blocks #}
     <h4>{{ text }}</h4>
-    {%- endfragment %}
+    {%- endblock %}
 
     {% 
-      fragment "splitblock"
+      block splitblock
     -%}
     <h5>{{ text }}</h5>
-    {%
-      endfragment
+    {% 
+      endblock
     %}
   </body>
 </html>
