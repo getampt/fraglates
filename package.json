@@ -1,12 +1,12 @@
 {
   "name": "fraglates",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "description": "An open source templating engine for generating server-side hypertext templates and fragments.",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
-    "build": "tsc",
+    "test": "NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest",
+    "build": "tsc && chmod +x ./dist/compiler.js",
     "precompile": "fraglates '**/*.{html,njk}' -p ./src/__tests__/templates -o ./src/__tests__/precompiled",
     "prepare": "rm -rf dist && npm run build",
     "prepublishOnly": "npm test"

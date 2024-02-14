@@ -21,7 +21,7 @@ import Fraglates from "fraglates";
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./templates", // templates folder
-  precompiled: "./precompiled-templates", // precompile template folder (optional)
+  precompiled: "./precompiled", // precompile template folder (optional)
 });
 
 // Render the whole template
@@ -98,6 +98,7 @@ import Fraglates from "fraglates";
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./templates", // template directory
+  precompiled: "./precompiled", // precompile template folder (optional)
   raw, // use Hono's HTML helper to escape templates
 });
 
@@ -106,7 +107,7 @@ const app = new Hono();
 
 // Define a route
 app.get("/header", async (c) => {
-  // Componentize the header fragment (type as an FC)
+  // Componentize the header fragment (type as an FC - Functional Component)
   const Header: FC = await fraglates.component("my-template.html#header");
 
   // Return Header component with JSX
@@ -114,7 +115,9 @@ app.get("/header", async (c) => {
 });
 ```
 
-Functional components automatically passes attributes as data into the template and anything wrapped in the tag as a `children` prop. This allows you to nest templates, fragments, other components, and JSX to build more complex responses.
+> Note that `c.html` will automatically `await` the asynchronous components.
+
+Functional components automatically pass attributes as data into the template and anything wrapped in the tag as a `children` prop. This allows you to nest templates, fragments, other components, and JSX to build more complex responses.
 
 Define a template with children:
 
@@ -160,13 +163,29 @@ const fraglates = new Fraglates({
 // Add an 'upper' filter
 fraglates.addFilter("upper", (str) => str.toUpperCase());
 
-// or on the .env property
+// or using the .env property
 fraglates.env.addFilter("upper", (str) => str.toUpperCase());
 ```
 
 ## Asynchronous Support
 
-Fraglates aggressively caches templates using Nunjuck's `eagerCompile` setting. Templates are compiled and cached as JavaScript functions to ensure maximum performance. This means that _asynchronous_ filters are **NOT** supported. All data must be resolved before being passed into the `render` method.
+> **Note:** Asynchronous filters are currently not supported in precompiled templates.
+
+Fraglates supports Nunjucks' asynchronous filters using the [async callback format](https://mozilla.github.io/nunjucks/api.html#custom-filters).
+
+```typescript
+fraglates.env.addFilter(
+  "myAsyncFilter",
+  (name, callback) => {
+    data.get(name).then((result) => {
+      callback(null, result);
+    });
+  },
+  true // Set the third argument to 'true'
+);
+```
+
+Any additional context passed to the Fraglates `render` function must be resolved first.
 
 ```typescript
 const foo = await someAsyncCall();
