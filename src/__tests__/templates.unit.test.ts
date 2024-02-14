@@ -11,7 +11,7 @@ const getVar = async () => {
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./src/__tests__/templates",
-  // precompiled: "./src/__tests__/precompiled",
+  precompiled: "./src/__tests__/precompiled",
 });
 
 fraglates.env.addFilter("upperx", (str) => {

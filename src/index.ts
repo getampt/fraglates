@@ -83,63 +83,70 @@ class Fraglates {
     const temp = templateParts[0].trim();
     const frag = templateParts[1]?.trim();
 
-    // console.log("template:", template);
-
     let output;
 
     try {
       // Check the cache for the template
-      if (cache[template] == undefined) {
+      if (cache[temp] == undefined) {
         if (process.env.BENCHMARK)
-          console.time(`get/compile template: ${template}`);
+          console.time(`get/compile template: ${temp}`);
         // If missing, get and compile the template and store in the cache
-        cache[template] = await new Promise((res, err) => {
+        cache[temp] = await new Promise((res, err) => {
           this.env.getTemplate(temp, true, (err, tmpl) => {
             res(tmpl);
           });
         });
 
-        cache[template].blocks["__root"] = cache[template].rootRenderFunc;
-        cache[template].rootRenderFunc = function root(
+        // Copy the root render function
+        cache[temp]._rootRenderFunc = cache[temp].rootRenderFunc;
+        // Replace the root render function with a function that checks for a fragment
+        cache[temp].rootRenderFunc = function fraglate(
           env,
           context,
           frame,
           runtime,
           cb
         ) {
-          // console.log("root", env, context, frame, runtime, cb);
-          // console.log("TESTING:", template);
-          if (frag) {
-            cache[template].blocks[frag](env, context, frame, runtime, cb);
+          // If a fragment is found, render it
+          if (context.ctx.__fragment) {
+            cache[temp].blocks[context.ctx.__fragment](
+              env,
+              context,
+              frame,
+              runtime,
+              cb
+            );
           } else {
-            cache[template].blocks["__root"](env, context, frame, runtime, cb);
+            // Else, render the copied root render function
+            cache[temp]._rootRenderFunc(env, context, frame, runtime, cb);
           }
         };
 
-        // console.log("cache", cache[template].rootRenderFunc.toString());
-
         if (process.env.BENCHMARK)
-          console.timeEnd(`get/compile template: ${template}`);
+          console.timeEnd(`get/compile template: ${temp}`);
       }
 
-      if (!cache[template]) {
+      if (!cache[temp]) {
         throw new Error(`Template "${temp}" not found.`);
-        // } else {
-        //   console.log("cache", cache[temp]);
       }
 
-      if (process.env.BENCHMARK) console.time(`render template: ${template}`);
+      if (process.env.BENCHMARK) console.time(`render template: ${temp}`);
 
+      // If this is a fragment, set the context
+      if (frag) {
+        context.__fragment = frag;
+      }
+
+      // Render the template
       output = await new Promise((resolve, err) => {
-        cache[template].render(context, (err, res) => {
+        cache[temp].render(context, (err, res) => {
           resolve(res);
         });
       });
 
-      // console.log("output", output);
+      if (process.env.BENCHMARK) console.timeEnd(`render template: ${temp}`);
 
-      if (process.env.BENCHMARK)
-        console.timeEnd(`render template: ${template}`);
+      // Return the output, trimming if set
       return this.trim ? output.trim() : output;
     } catch (error) {
       if (!this) {
@@ -218,14 +225,3 @@ const asyncFetchTemplate = async (name, searchPath, callback) => {
 };
 
 export default Fraglates;
-
-// // Make a copy of the root render function
-// const root = cache[temp].rootRenderFunc;
-// // Temporarily replace the root render function with the block function
-// cache[temp].rootRenderFunc = cache[temp].blocks[frag];
-// // Render the block
-// cache[temp].render(context, (err, res) => {
-//   // Restore the root render function
-//   cache[temp].rootRenderFunc = root;
-//   resolve(res);
-// });
