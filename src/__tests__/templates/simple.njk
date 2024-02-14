@@ -7,7 +7,10 @@
   </head>
 
   <body>
+    {% include "include.html" %}
+
     {% block header -%}
+    {% include "include.html" %}
     <header>{{ header }}</header>
     {%- endblock %}
     {{ content }}

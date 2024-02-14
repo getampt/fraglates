@@ -3,7 +3,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "baseUrl": "src",
-    "target": "ES6",
+    "target": "ESNext",
     "rootDir": "src",
     "outDir": "dist",
     "declaration": true,
@@ -23,5 +23,5 @@
     // "allowJs": true
   },
   "compileOnSave": false,
-  "exclude": ["node_modules", "**/__tests__", "dist", "**/*.cjs"]
+  "exclude": ["node_modules", "**/__tests__", "dist", "**/*.cjs", "**/compiler"]
 }

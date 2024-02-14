@@ -5,6 +5,8 @@
 
 An open source templating engine for generating server-side hypertext templates and fragments.
 
+> These docs are a work in progress. Not all features are documented and are subject to change.
+
 ## Installation and Usage
 
 ```
@@ -19,16 +21,17 @@ import Fraglates from "fraglates";
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./templates", // templates folder
+  precompiled: "./precompiled-templates", // precompile template folder (optional)
 });
 
 // Render the whole template
-const fullpage = fraglates.render("my-template.html", {
+const fullpage = await fraglates.render("my-template.html", {
   title: 'My Dynamic Title'
   items: ["one", "two", "three"]
 });
 
 // Render just the #header fragment
-const header = fraglates.render("my-template.html#header", {
+const header = await fraglates.render("my-template.html#header", {
   title: 'My Dynamic Title'
 });
 ```
@@ -64,6 +67,22 @@ In the template below, you can either render the entire template, or just the `h
 
 > Note that `block`s can be nested and include any Nunjucks templating logic like conditionals, filters, includes, etc.
 
+## Precompiling Templates
+
+Fraglates provides the `fraglates` cli command to precompile templates into JavaScript files that can be lazy loaded with dynamic imports. This is significantly faster than reading directly from the file system.
+
+From your project directory, run the following:
+
+```
+fraglates '**/*.{html,njk}' -p path/to/templates -o path/to/precompiled
+```
+
+This will compile all `html` and `njk` files in your `path/to/templates` directory and write them to the `path/to/compiled` directory as `.js` files. You should add this to your npm `build` script so that templates are compiled at build time as well.
+
+If you want to compile templates while developing, you can add the `--watch` or `-w` flag to the above command to watch the template files for changes and automatically recompile.
+
+> **Note:** Compiled templates are referenced using the name of the template, e.g. `my-template.html`. If the precompiled template doesn't exist, Fraglates will fall back to the filesystem.
+
 ## Functional Components with JSX
 
 If you're using a modern web framework like [Hono](https://hono.dev/), you may want to use JSX in order to build hypertext server side responses. Fraglates includes a `component` function that _"componentizes"_ your template for you.
@@ -88,7 +107,7 @@ const app = new Hono();
 // Define a route
 app.get("/header", async (c) => {
   // Componentize the header fragment (type as an FC)
-  const Header: FC = fraglates.component("my-template.html#header");
+  const Header: FC = await fraglates.component("my-template.html#header");
 
   // Return Header component with JSX
   return c.html(<Header headerText="My Header Text" />);
@@ -110,7 +129,7 @@ Wrap additional JSX with a componentized version of the template:
 // Define a route
 app.get("/div", async (c) => {
   // Componentize the template
-  const SimpleDiv: FC = fraglates.component("simple-div.html");
+  const SimpleDiv: FC = await fraglates.component("simple-div.html");
 
   const text = "Sample text";
 
@@ -152,7 +171,7 @@ Fraglates aggressively caches templates using Nunjuck's `eagerCompile` setting. 
 ```typescript
 const foo = await someAsyncCall();
 
-fraglates.render("my-template.html", {
+await fraglates.render("my-template.html", {
   foo: foo, // foo is already resolved
   // or you can just await the async call here
   bar: await someAsyncFunction(),
