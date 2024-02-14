@@ -38,7 +38,7 @@ class Fraglates {
     if (config.templates || !config.precompiled) {
       this.loaders.push(
         new nunjucks.FileSystemLoader(config.templates || "./", {
-          noCache: true,
+          noCache: false,
         })
       );
     }
@@ -99,11 +99,24 @@ class Fraglates {
           });
         });
 
-        if (frag) {
-          cache[template].rootRenderFunc = cache[template].blocks[frag];
-        }
+        cache[template].blocks["__root"] = cache[template].rootRenderFunc;
+        cache[template].rootRenderFunc = function root(
+          env,
+          context,
+          frame,
+          runtime,
+          cb
+        ) {
+          // console.log("root", env, context, frame, runtime, cb);
+          // console.log("TESTING:", template);
+          if (frag) {
+            cache[template].blocks[frag](env, context, frame, runtime, cb);
+          } else {
+            cache[template].blocks["__root"](env, context, frame, runtime, cb);
+          }
+        };
 
-        // console.log("cache", cache[template]);
+        // console.log("cache", cache[template].rootRenderFunc.toString());
 
         if (process.env.BENCHMARK)
           console.timeEnd(`get/compile template: ${template}`);
@@ -179,7 +192,7 @@ class PrecompiledTemplateLoader extends nunjucks.Loader {
             obj: src,
           },
           path: name,
-          noCache: true,
+          noCache: false,
         });
       } else {
         callback(null, null);
