@@ -2,12 +2,10 @@
 // @ts-nocheck
 
 import fs from "fs";
-// import { writeFileSync } from "fs";
 import { resolve, basename, dirname } from "path";
 import nunjucks from "nunjucks";
 import chokidar from "chokidar";
 import { glob, globSync } from "glob";
-import * as mkdirp from "mkdirp";
 import chalk from "chalk";
 
 import yargs from "yargs";
@@ -76,7 +74,7 @@ const render = (/** @type {string[]} */ files) => {
 
     if (outputDir) {
       outputFile = resolve(outputDir, outputFile);
-      mkdirp.sync(dirname(outputFile));
+      fs.mkdirSync(dirname(outputFile), { recursive: true });
     }
     console.log(chalk.blue("Rendering: " + file));
     fs.writeFileSync(outputFile, res);
