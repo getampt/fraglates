@@ -3,7 +3,7 @@
 
 import fs from "fs";
 import { resolve, basename, dirname } from "path";
-import nunjucks from "nunjucks";
+import nunjucks, { Environment } from "nunjucks";
 import chokidar from "chokidar";
 import { glob, globSync } from "glob";
 import chalk from "chalk";
@@ -61,21 +61,40 @@ if (argv._.length !== 1) {
 const inputDir = resolve(process.cwd(), argv.path || "") || "";
 const outputDir = argv.out || "";
 
+// Filter pattern
+const pattern = /env\.getFilter\("(.*?)"\)/g;
+
 const render = (/** @type {string[]} */ files) => {
   for (const file of files) {
+    // Create a new nunjucks environment to hold our filters
+    const env = new nunjucks.Environment([]);
+
+    // Precompile the template to parse for any filters
+    const tmp = nunjucks.precompile(resolve(inputDir, file));
+
+    let filters; // Find all the filters and indicate them as async
+    while ((filters = pattern.exec(tmp)) !== null) {
+      env.addFilter(filters[1], function () {}, true);
+    }
+
+    // Recompile the template with async filters and wrapper
     const res = nunjucks.precompile(resolve(inputDir, file), {
+      env,
       name: file,
       wrapper: (templates: any, opts) => {
         return `const template = function() { ${templates[0].template} }();\n\nexport default template;`;
       },
     });
 
+    // Add the .js extension (TODO: make this configurable)
     let outputFile = file + ".js"; //`.${argv.extension}`
 
+    // Create the output directory if it doesn't exist
     if (outputDir) {
       outputFile = resolve(outputDir, outputFile);
       fs.mkdirSync(dirname(outputFile), { recursive: true });
     }
+
     console.log(chalk.blue("Rendering: " + file));
     fs.writeFileSync(outputFile, res);
   }

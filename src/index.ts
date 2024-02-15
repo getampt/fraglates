@@ -1,6 +1,8 @@
 import nunjucks, { ILoaderAny, ILoaderAsync } from "nunjucks";
 import path from "path";
 
+const ComparisonAsyncFunction = (async () => {}).constructor;
+
 interface FraglatesConfig {
   templates?: string;
   precompiled?: string;
@@ -15,7 +17,7 @@ interface FraglatesConfig {
 const cache = {};
 
 class Fraglates {
-  env: nunjucks.Environment;
+  #env: nunjucks.Environment;
   raw: Function;
   trim: boolean;
   loaders: ILoaderAny[];
@@ -44,7 +46,7 @@ class Fraglates {
     }
 
     // Create a new nunjucks environment
-    this.env = new nunjucks.Environment(this.loaders, {
+    this.#env = new nunjucks.Environment(this.loaders, {
       autoescape: config.autoescape === false ? false : true,
       trimBlocks: config.trimBlocks || false,
       lstripBlocks: config.lstripBlocks || false,
@@ -55,26 +57,6 @@ class Fraglates {
 
     // Default trim setting
     this.trim = config.trim === false ? false : true;
-
-    // Return a proxy to the environment
-    return new Proxy(this, {
-      get(target, propKey, receiver) {
-        // Check if the property exists on the target object
-        if (propKey in target) {
-          // If the property exists, return it
-          return Reflect.get(target, propKey, receiver);
-        } else {
-          // For undefined properties, return a function that acts as the undefined method
-          if (typeof target.env[propKey] === "function") {
-            return (...args) => target.env[propKey](...args);
-          } else {
-            console.error(`"${String(propKey)}" does not exist.`);
-            // If the property doesn't exist, return undefined
-            return undefined;
-          }
-        }
-      },
-    });
   }
 
   // Render a template function
@@ -91,9 +73,10 @@ class Fraglates {
         if (process.env.BENCHMARK)
           console.time(`get/compile template: ${temp}`);
         // If missing, get and compile the template and store in the cache
-        cache[temp] = await new Promise((res, err) => {
-          this.env.getTemplate(temp, true, (err, tmpl) => {
-            res(tmpl);
+        cache[temp] = await new Promise((resolve, reject) => {
+          this.#env.getTemplate(temp, true, (err, tmpl) => {
+            if (err) reject(err);
+            resolve(tmpl);
           });
         });
 
@@ -138,8 +121,9 @@ class Fraglates {
       }
 
       // Render the template
-      output = await new Promise((resolve, err) => {
+      output = await new Promise((resolve, reject) => {
         cache[temp].render(context, (err, res) => {
+          if (err) reject(err);
           resolve(res);
         });
       });
@@ -147,7 +131,7 @@ class Fraglates {
       if (process.env.BENCHMARK) console.timeEnd(`render template: ${temp}`);
 
       // Return the output, trimming if set
-      return this.trim ? output.trim() : output;
+      return this.trim && output ? output.trim() : output;
     } catch (error) {
       if (!this) {
         console.warn(
@@ -155,9 +139,32 @@ class Fraglates {
         );
         return "";
       } else {
-        throw new Error(`Error rendering template: ${error.message}`);
+        // throw new Error(`Error rendering template: ${error.message}`);
+        throw new Error(error);
       }
     }
+  }
+
+  addFilter(name, callback) {
+    this.#env.addFilter(
+      name,
+      async function (...args) {
+        let cb = args.pop();
+
+        // This is only an issue when running sync from compiled templates
+        if (
+          typeof cb !== "function" &&
+          !(callback instanceof ComparisonAsyncFunction)
+        ) {
+          throw new Error("No callback because it's a sync function", name);
+        }
+
+        // @ts-ignore
+        let ret = await callback.call(this, ...args);
+        cb(null, ret);
+      },
+      true
+    );
   }
 
   async component(template: string, raw?: any) {
@@ -166,6 +173,22 @@ class Fraglates {
       const output = await this.render(template, props);
       return raw(output);
     };
+  }
+
+  addGlobal(name, value) {
+    if (typeof value === "function") {
+      return this.#env.addGlobal(name, (...args) => {
+        let ret = value.call(this, ...args);
+        if (ret instanceof Promise) {
+          throw new Error(
+            `Global functions (${name}) cannot be async, use 'addFilter("${name}", async function() {})' instead.`
+          );
+        }
+        return ret;
+      });
+    } else {
+      return this.#env.addGlobal(name, value);
+    }
   }
 }
 

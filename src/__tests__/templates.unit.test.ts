@@ -8,19 +8,54 @@ const getVar = async () => {
   return "async var";
 };
 
+const getPromise = async (resolveTo) => {
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      resolve(resolveTo);
+    });
+  });
+};
+
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
   templates: "./src/__tests__/templates",
   precompiled: "./src/__tests__/precompiled",
 });
 
-fraglates.env.addFilter("upperx", (str) => {
+fraglates.addFilter("upperx", (str) => {
   return "testing: " + str;
 });
 
-fraglates.env.addFilter("custom_filter", (str) => {
+fraglates.addFilter("custom_filter", (str) => {
   return "CUSTOM: " + str;
 });
+
+fraglates.addFilter("syncFilter", (str) => {
+  return "[{" + str + "}]";
+});
+
+fraglates.addFilter("syncishFilter", (str) => {
+  return getPromise("[~" + str + "~]");
+});
+
+fraglates.addFilter("asyncFilter", (str) => {
+  return new Promise((res) => {
+    setTimeout(() => {
+      res("[(" + str + ")]");
+    }, 500);
+  });
+});
+
+// Defines some global variables and functions
+fraglates.addGlobal("globalVar", "GLOBAL");
+fraglates.addGlobal("globalFunc", (x) => {
+  return typeof x === "string" ? x.toUpperCase() : "MISSING";
+});
+fraglates.addGlobal("globalFuncAsync", (x) => {
+  return 1; //getPromise("[~" + x + "~]");
+});
+
+// console.log(fraglates.getFilter("asyncFilter").toString());
 
 const renderedPath = "./src/__tests__/rendered";
 
@@ -166,6 +201,27 @@ describe("Template rendering", () => {
       x: "test",
     });
     expect(result).toBe(`<p id="test">test</p>`);
+  });
+
+  it("should handle async/sync filters", async () => {
+    const result = await fraglates.render("async.html", {
+      input: "TEST",
+    });
+    expect(result).toBe(
+      `<div>ASYNC: [(TEST)]</div>\n` +
+        `<div>SYNC: [{TEST}]</div>\n` +
+        `<div>SYNCISH: [~TEST~]</div>`
+    );
+  });
+
+  it("should handle global variables and functions", async () => {
+    const result = await fraglates.render("global.html", { input: "xyz" });
+    expect(result).toBe(
+      `<div>GLOBAL: GLOBAL</div>\n` +
+        `<div>GLOBALFUNC: XYZ</div>\n` +
+        `<div>GLOBALFUNCMISSING: MISSING</div>\n` +
+        `<div>GLOBALFUNCASYNC: 1</div>`
+    );
   });
 
   it("should handle restore the rootRenderFunction", async () => {
