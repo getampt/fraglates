@@ -19,3 +19,6 @@ dist
 
 # test packages
 *.tgz
+
+# precompiled templates
+src/__tests__/precompiled
