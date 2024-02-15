@@ -10,7 +10,7 @@
     "build": "tsc && chmod +x ./dist/compiler.js",
     "precompile": "fraglates '**/*.{html,njk}' -p ./src/__tests__/templates -o ./src/__tests__/precompiled",
     "prepare": "rm -rf dist && npm run build",
-    "prepublishOnly": "npm fulltest"
+    "prepublishOnly": "npm run fulltest"
   },
   "keywords": [
     "html",
