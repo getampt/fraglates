@@ -5,7 +5,7 @@
 
 An open source templating engine for generating server-side hypertext templates and fragments.
 
-> These docs are a work in progress. Not all features are documented and are subject to change.
+> These docs are a **work in progress**. Not all features are documented and are subject to change.
 
 ## Installation and Usage
 
@@ -13,15 +13,15 @@ An open source templating engine for generating server-side hypertext templates 
 npm install fraglates
 ```
 
-Import into your app, initialize with your template directory, and use the render method to render full templates or partial fragments.
+Import into your app, initialize with your template and/or precompiled template directory, and use the `render` method to render full templates or partial fragments.
 
 ```typescript
 import Fraglates from "fraglates";
 
 // Create a new instance of Fraglates
 const fraglates = new Fraglates({
-  templates: "./templates", // templates folder
-  precompiled: "./precompiled", // precompile template folder (optional)
+  templates: "./templates", // templates directory
+  precompiled: "./precompiled", // precompile template directory (optional)
 });
 
 // Render the whole template
@@ -40,9 +40,9 @@ const header = await fraglates.render("my-template.html#header", {
 
 ## Templating
 
-Fraglates uses [Nunjucks](https://mozilla.github.io/nunjucks/) as the core templating engine. An instance of Fraglates returns a [Nunjucks Environment](https://mozilla.github.io/nunjucks/api.html#environment) and supports all methods such as `addFilter()`, `addGlobal()`, etc.
+Fraglates uses [Nunjucks](https://mozilla.github.io/nunjucks/) as the core templating engine. Currently [Nunjucks Environment](https://mozilla.github.io/nunjucks/api.html#environment) methods such as `addFilter()` and `addGlobal()` are supported.
 
-The [templating syntax](https://mozilla.github.io/nunjucks/templating.html) is the same as Nunjucks, with one important addition: content wrapped in **`{% block blockName %}`** and **`{% endblock %}`** tags are accessible as fragments.
+The [templating syntax](https://mozilla.github.io/nunjucks/templating.html) is the same as Nunjucks, with one important addition: content wrapped in **`{% block blockName %}`** and **`{% endblock %}`** tags are accessible as **fragments**. Fragments can be rendered independently, giving you the ability to collocate HTML code within the same template for better readability. See this [HTMX essay on fragments](https://htmx.org/essays/template-fragments/) for more information and motivation.
 
 In the template below, you can either render the entire template, or just the `header` fragment using the `render` method.
 
@@ -81,7 +81,68 @@ This will compile all `html` and `njk` files in your `path/to/templates` directo
 
 If you want to compile templates while developing, you can add the `--watch` or `-w` flag to the above command to watch the template files for changes and automatically recompile.
 
-> **Note:** Compiled templates are referenced using the name of the template, e.g. `my-template.html`. If the precompiled template doesn't exist, Fraglates will fall back to the filesystem.
+> **Note:** Compiled templates are referenced using the name of the template, e.g. `my-template.html`. If the precompiled template doesn't exist, Fraglates will fall back to the filesystem if you provide a `templates` directory on initialization.
+
+## Asynchronous Support
+
+> **IMPORTANT:** Fraglates is asynchronous by default because of how it lazy loads compiled templates with dynamic imports. Calls to the `render` function **must be** `await`ed.
+
+Custom filters are automatically converted to asynchronous filters. They can return a synchronous result, a resolved promise, or a promise. See [Add a custom filter](#add-a-custom-filter) for more information.
+
+Any additional context/variables passed to the Fraglates `render` function must be resolved first.
+
+```typescript
+const foo = await someAsyncCall();
+
+await fraglates.render("my-template.html", {
+  foo: foo, // foo is already resolved
+  // or you can just await the async call here
+  bar: await someAsyncFunction(),
+});
+```
+
+## Extending with Nunjucks
+
+An instance of Fraglates creates a _private_ [Nunjucks Environment](https://mozilla.github.io/nunjucks/api.html#environment) behind the scenes. This is to ensure any manipulate of the underlying environment would not compromise the Fraglates instance.
+
+Fraglates does supports Nunjucks methods such as `addFilter()` and `addGlobal()`. Using these methods will affect all templates and fragments.
+
+### Add a custom filter
+
+```typescript
+// Create a new instance of Fraglates
+const fraglates = new Fraglates({
+  templates: "./templates", // template directory
+});
+
+// Add an 'upper' filter
+fraglates.addFilter("upper", (str) => str.toUpperCase());
+
+// Add an async filter
+fraglates.addFilter("getUser", async (id) => {
+  let user = await data.get(id);
+  return user;
+});
+```
+
+### Add a custom global
+
+```typescript
+// Create a new instance of Fraglates
+const fraglates = new Fraglates({
+  templates: "./templates", // template directory
+});
+
+// Add global variable
+fraglates.addGlobal("someGlobalVar", "This is Global");
+
+// Add a global function
+fraglates.addGlobal("rand", (x, y) => {
+  return Math.floor(Math.random() * (y - x + 1) + x);
+});
+```
+
+> **NOTE:** Globals **cannot** be asynchronous. Defining async globals will throw an error.
 
 ## Functional Components with JSX
 
@@ -143,57 +204,6 @@ app.get("/div", async (c) => {
       <p>{text}</p>
     </SimpleDiv>
   );
-});
-```
-
-## Extending with Nunjucks
-
-An instance of Fraglates creates a [Nunjucks Environment](https://mozilla.github.io/nunjucks/api.html#environment) and provides a proxy to `Environment` methods. You can also access the `Environment` on the `.env` property of the instance.
-
-Fraglates supports all Nunjucks methods such as `addFilter()`, `addGlobal()`, etc. Changes to the environment will affect all templates and fragments.
-
-### Add a custom filter
-
-```typescript
-// Create a new instance of Fraglates
-const fraglates = new Fraglates({
-  templates: "./templates", // template directory
-});
-
-// Add an 'upper' filter
-fraglates.addFilter("upper", (str) => str.toUpperCase());
-
-// or using the .env property
-fraglates.env.addFilter("upper", (str) => str.toUpperCase());
-```
-
-## Asynchronous Support
-
-> **Note:** Asynchronous filters are currently not supported in precompiled templates.
-
-Fraglates supports Nunjucks' asynchronous filters using the [async callback format](https://mozilla.github.io/nunjucks/api.html#custom-filters).
-
-```typescript
-fraglates.env.addFilter(
-  "myAsyncFilter",
-  (name, callback) => {
-    data.get(name).then((result) => {
-      callback(null, result);
-    });
-  },
-  true // Set the third argument to 'true'
-);
-```
-
-Any additional context passed to the Fraglates `render` function must be resolved first.
-
-```typescript
-const foo = await someAsyncCall();
-
-await fraglates.render("my-template.html", {
-  foo: foo, // foo is already resolved
-  // or you can just await the async call here
-  bar: await someAsyncFunction(),
 });
 ```
 
