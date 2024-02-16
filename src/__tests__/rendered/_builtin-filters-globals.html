@@ -1,0 +1,127 @@
+Builtin Filters
+---------------
+abs: 3
+---
+batch: 12-34-56
+---
+capitalize: This is a test
+---
+default: defaulted
+default (truthy): defaulted
+---
+dictsort: abcdef
+---
+dump: ["a",1,{"b":true}]
+---
+escape: &lt;html&gt;
+---
+first: 1
+first: a
+---
+float: 3.5
+---
+groupby: <b>green</b>: james, jessie<br><b>blue</b>: john, jim<br>
+---
+indent: one
+    two
+    three
+---
+int: 3
+---
+join: 123
+join: foo,bar,bear
+---
+last: 3
+last: c
+---
+length: 3
+length: 4
+length: 1
+---
+list: f,o,o,b,a,r,
+---
+lower: foobar
+---
+striptags: foo<br />
+bar
+---
+random: 1
+---
+reject (odd): 024
+reject (even): 135
+reject (divisibleby 3): 1245
+reject: 0
+---
+rejectattr: 1
+---
+replace: 123.56
+replace: aaxbbccc
+---
+reverse: fedcba
+---
+round: 5
+---
+floor: 4
+---
+urlize: foo <a href="http://www.example.com/">http://www.example.com/</a> bar
+---
+select (odd): 135
+select (even): 024
+select (divisibleby 3): 03
+select (odd): 12345
+---
+selectattr: 2
+---
+slice: <div class="columwrapper">
+  <ul class="column-1">
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+  </ul>
+  <ul class="column-2">
+    <li>4</li>
+    <li>5</li>
+    <li>6</li>
+  </ul>
+  <ul class="column-3">
+    <li>7</li>
+    <li>8</li>
+    <li>9</li>
+  </ul>
+</div>
+---
+sort: 1,2,3,4,5,6
+sort (reverse): 6,5,4,3,2,1
+sort (attrs): [{"x":1},{"x":2},{"x":3}]
+---
+string: 1,2,3,4,
+---
+striptags: Text with a SPAN tag
+---
+sum: 6
+---
+title: Foo Bar Baz
+---
+trim: foo
+---
+truncate: foo...
+---
+upper: FOO
+---
+urlencode: %26
+---
+urlize: foo <a href="http://www.example.com/">http://www.example.com/</a> bar
+urlize (truncate/safe): <a href="http://mozilla.github.io/" rel="nofollow">http://moz</a>
+---
+wordcount: 2
+---
+
+Global Functions
+----------------
+range: 0,1,2,3,4,
+---
+cycler:
+<div class="odd">james</div>
+<div class="even">john</div>
+<div class="odd">jim</div>
+<div class="even">jessie</div>

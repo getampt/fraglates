@@ -1,0 +1,11 @@
+{% extends "simple.html" %}
+
+{% block header -%}
+{%- include "include.html" %}
+    <header class="replaced">{{ header }}</header>
+{%- endblock -%}
+
+{% block footer -%}
+    {{ super() }}
+    <div>{{ footer }}</div>
+{%- endblock -%}

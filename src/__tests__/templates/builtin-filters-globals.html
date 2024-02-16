@@ -1,0 +1,169 @@
+Builtin Filters
+---------------
+abs: {{ -3 | abs }}
+---
+batch: {% set items = [1,2,3,4,5,6] %}
+{%- set dash = joiner("-") -%}
+{%- for item in items | batch(2) -%}
+{{ dash() }} {%- for items in item %}{{ items }}{% endfor -%}
+{%- endfor %}
+---
+capitalize: {{ "This Is A Test" | capitalize }}
+---
+default: {{ undefinedVar | default('defaulted') }}
+default (truthy): {{ 0 | default('defaulted', true) }}
+---
+dictsort: {% set items = {
+  'e': 1,
+  'd': 2,
+  'c': 3,
+  'a': 4,
+  'f': 5,
+  'b': 6
+  } -%}
+{%- for item in items | dictsort -%}
+{{ item[0] }}
+{%- endfor %}
+---
+dump: {% set items = ["a", 1, { b : true}] -%}
+{{ items | dump | safe }}
+---
+escape: {{ "<html>" | escape }}
+---
+first: {% set items = [1,2,3] -%}
+{{ items | first }}
+{%- set word = 'abc' %}
+first: {{ word | first }}
+---
+float: {{ "3.5" | float }}
+---
+groupby: {% set items = [
+    { name: 'james', type: 'green' },
+    { name: 'john', type: 'blue' },
+    { name: 'jim', type: 'blue' },
+    { name: 'jessie', type: 'green' }
+  ]
+  -%}
+{%- for type, items in items | groupby("type") -%}
+{%- set comma = joiner() -%}
+<b>{{ type }}</b>:
+{%- for item in items -%}
+{{ comma() }} {{ item.name }}
+{%- endfor -%}<br>
+{%- endfor %}
+---
+indent: {{ "one\ntwo\nthree" | indent }}
+---
+int: {{ "3.5" | int }}
+---
+join: {% set items =  [1, 2, 3] -%}
+{{ items | join }}
+join: {% set items = ['foo', 'bar', 'bear'] -%}
+{{ items | join(",") }}
+---
+last: {% set items = [1,2,3] -%}
+{{ items | last }}
+{% set word = 'abc' -%}
+last: {{ word | last }}
+---
+length: {{ [1,2,3] | length }}
+length: {{ "test" | length }}
+length: {{ {key: value} | length }}
+---
+list: {% for i in "foobar" | list %}{{ i }},{% endfor %}
+---
+lower: {{ "fOObAr" | lower }}
+---
+striptags: {{ "foo\nbar" | striptags(true) | escape | nl2br }}
+---
+random: {{ [1] | random }}
+---
+{%- set numbers=[0, 1, 2, 3, 4, 5] %}
+reject (odd): {{ numbers | reject("odd") | join }}
+reject (even): {{ numbers | reject("even") | join }}
+reject (divisibleby 3): {{ numbers | reject("divisibleby", 3) | join }}
+reject: {{ numbers | reject() | join }}
+---
+rejectattr: {% set foods = [{tasty: true}, {tasty: false}, {tasty: true}]-%}
+{{ foods | rejectattr("tasty") | length }}
+---
+replace: {% set numbers = 123456 -%}
+{{ numbers | replace("4", ".") }}
+replace: {% set letters = "aaabbbccc" -%}
+{{ letters | replace("ab", "x", 2) }}
+---
+reverse: {{ "abcdef" | reverse }}
+---
+round: {{ 4.5 | round }}
+---
+floor: {{ 4 | round(0, "floor") }}
+---
+urlize: {{ "foo http://www.example.com/ bar" | urlize | safe }}
+---
+{%- set numbers=[0, 1, 2, 3, 4, 5] %}
+select (odd): {{ numbers | select("odd") | join }}
+select (even): {{ numbers | select("even") | join }}
+select (divisibleby 3): {{ numbers | select("divisibleby", 3) | join }}
+select (odd): {{ numbers | select() | join }}
+---
+selectattr: {% set foods = [{tasty: true}, {tasty: false}, {tasty: true}] -%}
+{{ foods | selectattr("tasty") | length }}
+---
+slice: {% set arr = [1,2,3,4,5,6,7,8,9] -%}
+<div class="columwrapper">
+  {%- for items in arr | slice(3) %}
+  <ul class="column-{{ loop.index }}">
+    {%- for item in items %}
+    <li>{{ item }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endfor %}
+</div>
+---
+sort: {% set items = [1,5,4,2,6,3] -%}
+{{ items | sort | join(',') }}
+sort (reverse): {% set items = [1,5,4,2,6,3] -%}
+{{ items | sort(true) | join(',') }}
+sort (attrs): {% set items = [{ x: 2 }, { x: 3 }, { x: 1 }] -%}
+{{ items | sort(false,false,'x') | dump | safe }}
+---
+string: {% set item = 1234 -%}
+{%- for i in item | string | list -%}
+{{ i }},
+{%- endfor %}
+---
+striptags: {{ 'Text with a <span class="test">SPAN</span> tag' | striptags }}
+---
+sum: {% set items = [1,2,3] %}{{ items | sum }}
+---
+title: {{ "foo bar baz" | title }}
+---
+trim: {{ "  foo " | trim }}
+---
+truncate: {{ "foo bar" | truncate(3) }}
+---
+upper: {{ "foo" | upper }}
+---
+urlencode: {{ "&" | urlencode }}
+---
+urlize: {{ "foo http://www.example.com/ bar" | urlize | safe }}
+urlize (truncate/safe): {{ "http://mozilla.github.io/" | urlize(10,true) | safe }}
+---
+wordcount: {% set foo = "Hello World"%}{{ foo | wordcount }}
+---
+
+Global Functions
+----------------
+range: {% for i in range(0, 5) -%}{{ i }},{%- endfor %}
+---
+cycler:
+{% set cls = cycler("odd", "even") -%}
+{% set rows = [
+  { name: 'james' },
+  { name: 'john' },
+  { name: 'jim' },
+  { name: 'jessie' }
+] -%}
+{% for row in rows -%}
+<div class="{{ cls.next() }}">{{ row.name }}</div>
+{% endfor %}

@@ -1,0 +1,7 @@
+{%- import 'macros.html' as forms -%}
+
+{% call forms.field('name') -%}
+<hr />
+{% endcall %}
+{{ forms.field('user', value='John Doe') }}
+{{ forms.field('pass', type='password') }}

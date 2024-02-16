@@ -1,0 +1,11 @@
+{% macro field(name, value='', type='text') -%}
+{{ caller() if caller }}<div class="field">
+  <input type="{{ type }}" name="{{ name }}" value="{{ value | escape }}" />
+</div>
+{% endmacro -%}
+
+{% call field('name') -%}
+<hr />
+{% endcall %}
+{{ field('user', value='John Doe') }}
+{{ field('pass', type='password') }}

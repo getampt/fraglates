@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/fraglates.svg)](https://www.npmjs.com/package/fraglates)
 [![npm](https://img.shields.io/npm/l/fraglates.svg)](https://www.npmjs.com/package/fraglates)
 
-An open source templating engine for generating server-side hypertext templates and fragments.
+An open source templating engine built on top of [Nunjucks](https://mozilla.github.io/nunjucks/) for generating server-side hypertext templates and fragments.
 
 > These docs are a **work in progress**. Not all features are documented and are subject to change.
 
@@ -66,6 +66,8 @@ In the template below, you can either render the entire template, or just the `h
 ```
 
 > Note that `block`s can be nested and include any Nunjucks templating logic like conditionals, filters, includes, etc.
+
+Fraglates supports advanced Nunjucks features such as [template inheritance](https://mozilla.github.io/nunjucks/templating.html#template-inheritance), [includes](https://mozilla.github.io/nunjucks/templating.html#include), [macros](https://mozilla.github.io/nunjucks/templating.html#macro)/[imports](https://mozilla.github.io/nunjucks/templating.html#import), [custom filters](#add-a-custom-filter), and more.
 
 ## Precompiling Templates
 
