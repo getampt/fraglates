@@ -1,4 +1,8 @@
-# Fraglates
+<div align="center">
+    <img src="https://raw.githubusercontent.com/getampt/fraglates/main/images/fraglates-logo.png" width="400" height="auto" alt="Fraglates"/>
+</div>
+
+<hr />
 
 [![npm](https://img.shields.io/npm/v/fraglates.svg)](https://www.npmjs.com/package/fraglates)
 [![npm](https://img.shields.io/npm/l/fraglates.svg)](https://www.npmjs.com/package/fraglates)
