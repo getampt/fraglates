@@ -146,6 +146,51 @@ fraglates.addGlobal("rand", (x, y) => {
 
 > **NOTE:** Globals **cannot** be asynchronous. Defining async globals will throw an error.
 
+## Custom Tags
+
+You can extend Fraglates even more by using **custom tags**. Custom tags are heavily inspired by [Eleventy's Paired Shortcodes](https://www.11ty.dev/docs/shortcodes/#paired-shortcodes) that allow you to create new "block" types within your templates.
+
+Custom tags can be made asynchronous by passing an `async` function as the second parameter. The function signature is as follows:
+
+- `content`: Anything wrapped inside the custom tag block
+- `keywords`: Auto-parsed keywords using Nunjucks' [keyword arguments](https://mozilla.github.io/nunjucks/templating.html#keyword-arguments) support
+- `arg0`...`argn`: Any positional arguments passed in to the custom tag in the template. Argument names can be specified directly, e.g. `(contents, keywords, x, y, z) => {}` or captured using the spread operator, i.e. `(contents, keywords, ...args) => {}`.
+
+Create a synchronous custom tag:
+
+```typescript
+fraglates.addTag("customTag", (content, keywords, ...args) => {
+  return `<div style="color:${keywords.color};">${content}</div>`;
+});
+```
+
+Create an asynchronous custom tag:
+
+```typescript
+fraglates.addTag("customAsyncTag", async (content, keywords, userId) => {
+  const user = await data.get(userId);
+  return `<div>
+    <h3>${user.name}</h3>
+    ${content}
+  </div>`;
+});
+```
+
+Custom tags can be used in templates like this:
+
+```nunjucks
+<h1>My template with custom tags!</h1>
+
+{% customTag color="blue" %}
+This will change my color to blue.
+And this {{ variable }} will render before it is passed into the custom tag
+{% endcustomTag %}
+
+{% customAsyncTag 1234 %}
+<p>This is some test content in a custom tag</p>
+{% endcustomAsyncTag %}
+```
+
 ## Functional Components with JSX
 
 If you're using a modern web framework like [Hono](https://hono.dev/), you may want to use JSX in order to build hypertext server side responses. Fraglates includes a `component` function that _"componentizes"_ your template for you.
