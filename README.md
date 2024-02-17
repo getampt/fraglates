@@ -1,13 +1,13 @@
-<div align="center">
-    <img src="https://raw.githubusercontent.com/getampt/fraglates/main/images/fraglates-logo.png" width="300" height="auto" alt="Fraglates"/>
+<div>
+    <img src="https://raw.githubusercontent.com/getampt/fraglates/main/images/fraglates-logo.png" width="400" height="auto" alt="Fraglates"/>
 </div>
+
+An open source templating engine built on top of [Nunjucks](https://mozilla.github.io/nunjucks/) for generating server-side hypertext templates and fragments.
 
 <hr />
 
 [![npm](https://img.shields.io/npm/v/fraglates.svg)](https://www.npmjs.com/package/fraglates)
 [![npm](https://img.shields.io/npm/l/fraglates.svg)](https://www.npmjs.com/package/fraglates)
-
-An open source templating engine built on top of [Nunjucks](https://mozilla.github.io/nunjucks/) for generating server-side hypertext templates and fragments.
 
 > These docs are a **work in progress**. Not all features are documented and are subject to change.
 
