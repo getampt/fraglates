@@ -11,6 +11,76 @@ import chalk from "chalk";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+// Extend the Parser and override the parseStatement method
+class CustomParser extends nunjucks.parser.Parser {
+  // Override using an arrow function to automatically bind `this`
+  parseStatement = () => {
+    var tok = this.peekToken();
+    var node;
+    if (tok.type !== nunjucks.lexer.TOKEN_SYMBOL) {
+      this.fail("tag name expected", tok.lineno, tok.colno);
+    }
+    if (
+      this.breakOnBlocks &&
+      nunjucks.lib.indexOf(this.breakOnBlocks, tok.value) !== -1
+    ) {
+      return null;
+    }
+    switch (tok.value) {
+      case "raw":
+        return this.parseRaw();
+      case "verbatim":
+        return this.parseRaw("verbatim");
+      case "if":
+      case "ifAsync":
+        return this.parseIf();
+      case "for":
+      case "asyncEach":
+      case "asyncAll":
+        return this.parseFor();
+      case "block":
+        return this.parseBlock();
+      case "extends":
+        return this.parseExtends();
+      case "include":
+        return this.parseInclude();
+      case "set":
+        return this.parseSet();
+      case "macro":
+        return this.parseMacro();
+      case "call":
+        return this.parseCall();
+      case "import":
+        return this.parseImport();
+      case "from":
+        return this.parseFrom();
+      case "filter":
+        return this.parseFilterStatement();
+      case "switch":
+        return this.parseSwitch();
+      default:
+        if (this.extensions.length) {
+          for (var i = 0; i < this.extensions.length; i++) {
+            var ext = this.extensions[i];
+            if (nunjucks.lib.indexOf(ext.tags || [], tok.value) !== -1) {
+              return ext.parse(this, this.nodes, this.lexer);
+            }
+          }
+        } else {
+          // This is our hack to make sure precompiling works with custom tags
+          const env = new Environment([]);
+          env.addExtension(tok.value, new genericExtension(tok.value));
+          // console.log(env.getExtension(tok.value));
+          return env
+            .getExtension(tok.value)
+            .parse(this, this.nodes, this.lexer);
+        }
+    }
+    return node;
+  };
+}
+
+// Parse the command line arguments
 const argv = yargs(hideBin(process.argv))
   .usage("Usage: fraglates '<file|glob>' [options]")
   .example("fraglates test.html", "Precompile test.html to test.html.js")
@@ -43,6 +113,7 @@ const argv = yargs(hideBin(process.argv))
     boolean: true,
     describe: "Watch file changes",
   })
+  // We might want to add the ability to change the extension (e.g. mjs or cjs)
   // .option("extension", {
   //   alias: "e",
   //   string: true,
@@ -52,25 +123,39 @@ const argv = yargs(hideBin(process.argv))
   // })
   .parse();
 
+// Handle cases where the number of non-option arguments is not exactly one
 if (argv._.length !== 1) {
-  // Handle cases where the number of non-option arguments is not exactly one
   console.error("Please provide a file or glob pattern in quotes.");
   process.exit(1);
 }
 
+// Set the input and output directories
 const inputDir = resolve(process.cwd(), argv.path || "") || "";
 const outputDir = argv.out || "";
 
-// Filter pattern
+// Set our Filter detection pattern
 const pattern = /env\.getFilter\("(.*?)"\)/g;
 
+// Precompile the templates
 const render = (/** @type {string[]} */ files) => {
   for (const file of files) {
     // Create a new nunjucks environment to hold our filters
     const env = new nunjucks.Environment([]);
 
+    // Override the parser to allow for auto discovery of custom tags
+    nunjucks.parser.parse = (src, extensions, opts) => {
+      const p = new CustomParser(nunjucks.lexer.lex(src, opts));
+
+      if (extensions !== undefined) {
+        p.extensions = extensions;
+      }
+      return p.parseAsRoot();
+    };
+
     // Precompile the template to parse for any filters
-    const tmp = nunjucks.precompile(resolve(inputDir, file));
+    const tmp = nunjucks.precompile(resolve(inputDir, file), {
+      env,
+    });
 
     let filters; // Find all the filters and indicate them as async
     while ((filters = pattern.exec(tmp)) !== null) {
@@ -132,4 +217,18 @@ if (argv.watch) {
   watcher.on("change", (file) => {
     render([file]);
   });
+}
+
+// Define a generic extension to add to the nunjucks environment
+function genericExtension(name) {
+  this.tags = [name];
+
+  this.parse = function (parser, nodes, lexer) {
+    var tok = parser.nextToken();
+    var args = parser.parseSignature(null, true);
+    parser.advanceAfterBlockEnd(tok.value);
+    var body = parser.parseUntilBlocks("end" + name);
+    parser.advanceAfterBlockEnd();
+    return new nunjucks.nodes.CallExtensionAsync(this, "run", args, [body]);
+  };
 }

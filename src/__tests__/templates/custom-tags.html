@@ -1,0 +1,8 @@
+<h1>Custom Tags</h1>
+{% testTag 'foo', 'bar', baz="foo", color="blue" %}
+This is some test content in a custom tag: {{ foo }}
+{% endtestTag %}
+
+{% testAsyncTag color="green" %}
+This is some test content in a custom tag: {{ foo }}
+{% endtestAsyncTag %}

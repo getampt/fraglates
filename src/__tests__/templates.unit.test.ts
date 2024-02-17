@@ -4,7 +4,7 @@ import Fraglates from "../index";
 // process.env.BENCHMARK = "true";
 
 const getVar = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 500));
   return "async var";
 };
 
@@ -57,6 +57,15 @@ for (const loader in loaders) {
   });
   fraglates.addGlobal("globalFuncAsync", (x) => {
     return 1; //getPromise("[~" + x + "~]");
+  });
+
+  fraglates.addTag("testTag", (content, keywords, ...args) => {
+    return `<div style="color:${keywords.color};">SYNC:${content}</div>`;
+  });
+
+  fraglates.addTag("testAsyncTag", async (content, keywords, ...args) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return `<div style="color:${keywords.color};">ASYNC:${content}</div>`;
   });
 
   // console.log(fraglates.getFilter("asyncFilter").toString());
@@ -295,6 +304,17 @@ for (const loader in loaders) {
       const result = await fraglates.render("import.html", {});
 
       const expected = fs.readFileSync(`${renderedPath}/_macros.html`, "utf8");
+      expect(result).toBe(expected);
+    });
+
+    it("should process custom tags", async () => {
+      const result = await fraglates.render("custom-tags.html", {
+        foo: "TEST",
+      });
+      const expected = fs.readFileSync(
+        `${renderedPath}/_custom-tags.html`,
+        "utf8"
+      );
       expect(result).toBe(expected);
     });
   });

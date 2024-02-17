@@ -167,12 +167,9 @@ class Fraglates {
     );
   }
 
-  async component(template: string, raw?: any) {
-    raw = raw || this.raw;
-    return async (props) => {
-      const output = await this.render(template, props);
-      return raw(output);
-    };
+  addTag(tagName, tagFn) {
+    const Tag = getTagFn(tagName, tagFn);
+    this.#env.addExtension(tagName, new Tag());
   }
 
   addGlobal(name, value) {
@@ -189,6 +186,14 @@ class Fraglates {
     } else {
       return this.#env.addGlobal(name, value);
     }
+  }
+
+  async component(template: string, raw?: any) {
+    raw = raw || this.raw;
+    return async (props) => {
+      const output = await this.render(template, props);
+      return raw(output);
+    };
   }
 }
 
@@ -245,6 +250,44 @@ const asyncFetchTemplate = async (name, searchPath, callback) => {
     // console.error(error);
     callback(error, null);
   }
+};
+
+// Define the dynamic tag function
+const getTagFn = (tagName, tagFn) => {
+  return function TagFunction() {
+    this.tags = [tagName];
+
+    this.parse = function (parser, nodes) {
+      const tok = parser.nextToken();
+      const args = parser.parseSignature(true, true);
+      parser.advanceAfterBlockEnd(tok.value);
+      const body = parser.parseUntilBlocks("end" + tagName);
+      parser.advanceAfterBlockEnd();
+      return new nodes.CallExtensionAsync(this, "run", args, [body]);
+    };
+
+    this.run = function (context, ...args) {
+      const cb = args.pop();
+      const body = args.pop();
+
+      const { __keywords = false, ...keywords } =
+        args[args.length - 1] instanceof Object &&
+        args[args.length - 1] !== null &&
+        args[args.length - 1].__keywords
+          ? args.pop()
+          : {};
+
+      body(async (e, content) => {
+        if (e) {
+          console.log(e);
+          cb(e);
+        }
+
+        let ret = await tagFn.call(this, content, keywords, ...args);
+        cb(null, new nunjucks.runtime.SafeString(ret));
+      });
+    };
+  };
 };
 
 export default Fraglates;
