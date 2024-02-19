@@ -1,0 +1,16 @@
+---js
+{
+title: "My page title",
+currentDate: function() {
+// You can have a JavaScript function here!
+return (new Date()).toLocaleString();
+}
+}
+---
+
+<div>{{ title }}: {{ currentDate() }}</div>
+
+{% block test %}
+<h3>TEST FRAGMENT: {{ foo }} {{ title }}</h3>
+{{ currentDate() }}
+{% endblock %}

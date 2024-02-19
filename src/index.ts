@@ -1,5 +1,7 @@
 import nunjucks, { ILoaderAny, ILoaderAsync } from "nunjucks";
 import path from "path";
+import fs from "fs";
+import matter from "gray-matter";
 
 const ComparisonAsyncFunction = (async () => {}).constructor;
 
@@ -39,7 +41,7 @@ class Fraglates {
     // Add the file system loader if templates is set (or no precompiled)
     if (config.templates || !config.precompiled) {
       this.loaders.push(
-        new nunjucks.FileSystemLoader(config.templates || "./", {
+        new FileSystemLoader(config.templates || "./", {
           noCache: false,
         })
       );
@@ -73,17 +75,18 @@ class Fraglates {
         if (process.env.BENCHMARK)
           console.time(`get/compile template: ${temp}`);
         // If missing, get and compile the template and store in the cache
-        cache[temp] = await new Promise((resolve, reject) => {
-          this.#env.getTemplate(temp, true, (err, tmpl) => {
+        cache[temp] = {};
+        cache[temp].tmp = await new Promise((resolve, reject) => {
+          this.#env.getTemplate(temp, true, (err, tmp) => {
             if (err) reject(err);
-            resolve(tmpl);
+            resolve(tmp);
           });
         });
 
         // Copy the root render function
-        cache[temp]._rootRenderFunc = cache[temp].rootRenderFunc;
+        cache[temp].tmp._rootRenderFunc = cache[temp].tmp.rootRenderFunc;
         // Replace the root render function with a function that checks for a fragment
-        cache[temp].rootRenderFunc = function fraglate(
+        cache[temp].tmp.rootRenderFunc = function fraglate(
           env,
           context,
           frame,
@@ -92,7 +95,7 @@ class Fraglates {
         ) {
           // If a fragment is found, render it
           if (context.ctx.__fragment) {
-            cache[temp].blocks[context.ctx.__fragment](
+            cache[temp].tmp.blocks[context.ctx.__fragment](
               env,
               context,
               frame,
@@ -101,7 +104,7 @@ class Fraglates {
             );
           } else {
             // Else, render the copied root render function
-            cache[temp]._rootRenderFunc(env, context, frame, runtime, cb);
+            cache[temp].tmp._rootRenderFunc(env, context, frame, runtime, cb);
           }
         };
 
@@ -120,12 +123,17 @@ class Fraglates {
         context.__fragment = frag;
       }
 
+      console.log(cache[temp]);
+
       // Render the template
       output = await new Promise((resolve, reject) => {
-        cache[temp].render(context, (err, res) => {
-          if (err) reject(err);
-          resolve(res);
-        });
+        cache[temp].tmp.render(
+          { ...context, ...cache[temp].ctx },
+          (err, res) => {
+            if (err) reject(err);
+            resolve(res);
+          }
+        );
       });
 
       if (process.env.BENCHMARK) console.timeEnd(`render template: ${temp}`);
@@ -234,7 +242,7 @@ class PrecompiledTemplateLoader extends nunjucks.Loader {
       }
     });
   }
-}
+} // end PrecompiledTemplateLoader
 
 // Define the asyncFetchTemplate function
 const asyncFetchTemplate = async (name, searchPath, callback) => {
@@ -250,7 +258,74 @@ const asyncFetchTemplate = async (name, searchPath, callback) => {
     // console.error(error);
     callback(error, null);
   }
-};
+}; // end asyncFetchTemplate
+
+class FileSystemLoader extends nunjucks.Loader {
+  pathsToNames: any;
+  noCache: boolean;
+  searchPaths: string[];
+
+  constructor(searchPaths, opts) {
+    super();
+    if (typeof opts === "boolean") {
+      console.log(
+        "[nunjucks] Warning: you passed a boolean as the second " +
+          "argument to FileSystemLoader, but it now takes an options " +
+          "object. See http://mozilla.github.io/nunjucks/api.html#filesystemloader"
+      );
+    }
+
+    opts = opts || {};
+    this.pathsToNames = {};
+    this.noCache = !!opts.noCache;
+
+    if (searchPaths) {
+      searchPaths = Array.isArray(searchPaths) ? searchPaths : [searchPaths];
+      // For windows, convert to forward slashes
+      this.searchPaths = searchPaths.map(path.normalize);
+    } else {
+      this.searchPaths = ["."];
+    }
+  }
+
+  getSource(name) {
+    var fullpath = null;
+    var paths = this.searchPaths;
+
+    for (let i = 0; i < paths.length; i++) {
+      const basePath = path.resolve(paths[i]);
+      const p = path.resolve(paths[i], name);
+
+      // Only allow the current directory and anything
+      // underneath it to be searched
+      if (p.indexOf(basePath) === 0 && fs.existsSync(p)) {
+        fullpath = p;
+        break;
+      }
+    }
+
+    if (!fullpath) {
+      return null;
+    }
+
+    this.pathsToNames[fullpath] = name;
+
+    const src = fs.readFileSync(fullpath, "utf-8");
+    const { content, data } = matter(src);
+
+    console.log(name, data);
+
+    if (cache[name]) cache[name].ctx = data;
+
+    const source = {
+      src: content,
+      path: fullpath,
+      noCache: this.noCache,
+    };
+    // this.emit("load", name, source);
+    return source;
+  }
+} // end FileSystemLoader
 
 // Define the dynamic tag function
 const getTagFn = (tagName, tagFn) => {

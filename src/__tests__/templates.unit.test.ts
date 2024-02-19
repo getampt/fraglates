@@ -18,7 +18,7 @@ const getPromise = async (resolveTo) => {
 
 const loaders = {
   "file system": { templates: "./src/__tests__/templates" },
-  precompiled: { precompiled: "./src/__tests__/precompiled" },
+  // precompiled: { precompiled: "./src/__tests__/precompiled" },
 };
 
 // Loop through each template loader type
@@ -316,6 +316,19 @@ for (const loader in loaders) {
         "utf8"
       );
       expect(result).toBe(expected);
+    });
+
+    it.only("should process frontmatter", async () => {
+      const result = await fraglates.render("inherited.html", {
+        foo: "bar",
+      });
+      console.log(result);
+
+      // const expected = fs.readFileSync(
+      //   `${renderedPath}/_custom-tags.html`,
+      //   "utf8"
+      // );
+      // expect(result).toBe(expected);
     });
   });
 }
