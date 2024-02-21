@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suspense Test</title>
+  </head>
+
+  <body>
+    <h1>Test Suspense: bar</h1>
+
+    <!-- Block 1 -->
+
+    <template id="fraglate:suspense1"></template>
+    <div>
+      <h1>Suspense 1...</h1>
+      <div>loading...</div>
+    </div>
+<!--/suspense1$-->
+
+    <!-- Block 2 -->
+
+    <template id="fraglate:suspense2"></template>
+    <div>
+      <h1>Suspense 2...</h1>
+      <div>loading...</div>
+    </div>
+<!--/suspense2$-->
+
+    <!-- Block 3 -->
+
+    <template id="fraglate:suspense3"></template>
+    <div>
+      <h1>Suspense 3...</h1>
+      <div>loading...</div>
+    </div>
+<!--/suspense3$-->
+  
+
+
+<template data-fraglate-target="fraglate:suspense2">This is a text response</template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense2');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense2$');d.replaceWith(c.content)})(document)</script>
+<template data-fraglate-target="fraglate:suspense3">
+    <div>
+      <h1>Suspense 3...</h1>
+      <div>ALSO LOADED</div>
+    </div></template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense3');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense3$');d.replaceWith(c.content)})(document)</script>
+<template data-fraglate-target="fraglate:suspense1">
+    <div>
+      <h1>Suspense 1...</h1>
+      <div>LOADED</div>
+    </div></template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense1');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense1$');d.replaceWith(c.content)})(document)</script>
+</body></html>

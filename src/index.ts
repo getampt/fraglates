@@ -62,7 +62,7 @@ class Fraglates {
   }
 
   // Render a template function
-  async render(template: string, context: any) {
+  async render(template: string, context: any, blocks?: any) {
     const templateParts = template.split("#");
     const temp = templateParts[0].trim();
     const frag = templateParts[1]?.trim();
@@ -82,6 +82,88 @@ class Fraglates {
             resolve(tmp);
           });
         });
+
+        // Create a store for the blocks
+        cache[temp].tmp._blocks = [];
+
+        // Process the blocks
+        for (const block in cache[temp].tmp.blocks) {
+          // Copy the original block function
+          cache[temp].tmp._blocks[block] = cache[temp].tmp.blocks[block];
+
+          // Overwrite the block function
+          cache[temp].tmp.blocks[block] = function (
+            env,
+            context,
+            frame,
+            runtime,
+            cb
+          ) {
+            // Override the getSuper function
+            context.getSuper = function getSuper(
+              env,
+              name,
+              block,
+              frame,
+              runtime,
+              cb
+            ) {
+              // if (this.ctx.__fragment) {
+              //   console.log("This is a fragment", this.ctx);
+              //   cache[temp].tmp._rootRenderFunc(
+              //     env,
+              //     {},
+              //     frame,
+              //     runtime,
+              //     (e, res) => {
+              //       console.log(e, res);
+              //     }
+              //   );
+              // }
+
+              // Since we overrode the signatures of the block functions, we need
+              // to keep track of the depth ourselves.
+              if (!this.depth) {
+                this.depth = {};
+              }
+              if (!this.depth[name]) {
+                this.depth[name] = 0;
+              }
+              this.depth[name]++;
+              let idx = this.depth[name];
+
+              let blk = this.blocks[name][idx];
+              let context = this;
+              if (idx === -1 || !blk) {
+                // console.log(name, idx, this.blocks[name][0].toString());
+                console.log(
+                  "SUPER ERROR",
+                  name,
+                  idx,
+                  this.ctx,
+                  this.blocks[name]
+                );
+                throw new Error('no super block available for "' + name + '"');
+              }
+              blk(env, context, frame, runtime, cb);
+            }; // end getSuper override
+
+            // Create a new callback
+            const newCB = (err, res) => {
+              if (context.ctx.__resolved) {
+                const content = wrapSuspense(block, res);
+                cb(err, content);
+              } else if (context.ctx.__blocks && context.ctx.__blocks[block]) {
+                const content = wrapFallback(block, res);
+                cb(err, content);
+              } else {
+                cb(err, res);
+              }
+            };
+
+            cache[temp].tmp._blocks[block](env, context, frame, runtime, newCB);
+          };
+        }
 
         // Copy the root render function
         cache[temp].tmp._rootRenderFunc = cache[temp].tmp.rootRenderFunc;
@@ -123,12 +205,19 @@ class Fraglates {
         context.__fragment = frag;
       }
 
-      console.log(cache[temp]);
+      // If blocks were provided, add them to the context
+      if (blocks) {
+        context.__blocks = Object.keys(blocks).reduce((acc, key) => {
+          acc[key] = true;
+          return acc;
+        }, {});
+      }
 
       // Render the template
       output = await new Promise((resolve, reject) => {
         cache[temp].tmp.render(
-          { ...context, ...cache[temp].ctx },
+          context,
+          // { ...context, ...cache[temp].ctx }, for future frontmatter support
           (err, res) => {
             if (err) reject(err);
             resolve(res);
@@ -138,8 +227,12 @@ class Fraglates {
 
       if (process.env.BENCHMARK) console.timeEnd(`render template: ${temp}`);
 
-      // Return the output, trimming if set
-      return this.trim && output ? output.trim() : output;
+      if (blocks) {
+        return [this.trim && output ? output.trim() : output, blocks];
+      } else {
+        // Return the output, trimming if set
+        return this.trim && output ? output.trim() : output;
+      }
     } catch (error) {
       if (!this) {
         console.warn(
@@ -151,6 +244,87 @@ class Fraglates {
         throw new Error(error);
       }
     }
+  }
+
+  // Experimental stream support
+  stream(
+    template: string,
+    context: any,
+    blocks?: any
+  ): ReadableStream<Uint8Array> {
+    const that = this;
+    const textEncoder = new TextEncoder();
+    const reader = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const [content, _blocks] = await that.render(template, context, blocks);
+
+        // Write the main template content to the stream
+        // Strip the closing body and html tags
+        controller.enqueue(
+          textEncoder.encode(
+            content.replace("</body>", "").replace("</html>", "")
+          )
+        );
+
+        // Write an extra space to make lambda send previous chunk
+        controller.enqueue(textEncoder.encode("\n"));
+
+        // Set the resolved counter (not sure we'll need this)
+        let resolvedCount = 0;
+        // Create an array to store our promises
+        const promises: Promise<void>[] = [];
+
+        // Create a function to handle resolved blocks
+        const then = async (block: string) => {
+          // Call the passed block function
+          let promise = _blocks[block](); // <-- Should we pass something here?
+
+          // If the passed block doesn't return a promise, make it one
+          if (!(promise instanceof Promise)) {
+            promise = Promise.resolve(promise);
+          }
+
+          // Add the promise to the array
+          promises.push(
+            promise.then(async (res) => {
+              // If the block returns an object, render the fragment with the object as context
+              if (isObject(res)) {
+                const output = await that.render([template, block].join("#"), {
+                  ...context, // Include the parent context
+                  ...res, // Include the returned block context
+                  __resolved: true, // Set the resolved flag
+                });
+                controller.enqueue(textEncoder.encode(output));
+
+                // Else return the response as a string
+              } else {
+                const output = wrapSuspense(block, res);
+                controller.enqueue(textEncoder.encode(output));
+              }
+
+              // Increment the resolved counter
+              resolvedCount++;
+
+              // Write an extra space to make lambda send previous chunk
+              controller.enqueue(textEncoder.encode("\n"));
+            })
+          );
+        };
+
+        // This will map all the passed blocks to promises
+        Object.keys(_blocks).map(then);
+
+        // Not sure why we need to wait here?
+        // while (resolvedCount !== promises.length) { }
+        await Promise.all(promises);
+
+        // Close the body and html tags
+        controller.enqueue(textEncoder.encode("</body></html>"));
+        // Close the stream
+        controller.close();
+      },
+    });
+    return reader;
   }
 
   addFilter(name, callback) {
@@ -205,6 +379,7 @@ class Fraglates {
   }
 }
 
+// Define the PrecompiledTemplateLoader class
 class PrecompiledTemplateLoader extends nunjucks.Loader {
   options?: any;
   path: string;
@@ -260,6 +435,7 @@ const asyncFetchTemplate = async (name, searchPath, callback) => {
   }
 }; // end asyncFetchTemplate
 
+// Define the FileSystemLoader class
 class FileSystemLoader extends nunjucks.Loader {
   pathsToNames: any;
   noCache: boolean;
@@ -311,14 +487,12 @@ class FileSystemLoader extends nunjucks.Loader {
     this.pathsToNames[fullpath] = name;
 
     const src = fs.readFileSync(fullpath, "utf-8");
-    const { content, data } = matter(src);
-
-    console.log(name, data);
-
-    if (cache[name]) cache[name].ctx = data;
+    // Future frontmatter support?
+    // const { content, data } = matter(src);
+    // if (cache[name]) cache[name].ctx = data;
 
     const source = {
-      src: content,
+      src: src,
       path: fullpath,
       noCache: this.noCache,
     };
@@ -365,4 +539,56 @@ const getTagFn = (tagName, tagFn) => {
   };
 };
 
+// Utility function to check if a variable is an object
+function isObject(variable) {
+  return (
+    typeof variable === "object" &&
+    variable !== null &&
+    !Array.isArray(variable) &&
+    !(variable instanceof Date)
+  );
+}
+
+// Utility function to wrap a block in a fallback template
+function wrapFallback(block, content) {
+  return `<template id="fraglate:${block}"></template>${content}\n<!--/${block}$-->`;
+}
+
+// Utility function to wrap a block in a suspense component
+function wrapSuspense(block, content) {
+  return `<template data-fraglate-target="fraglate:${block}">${content}</template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:${block}');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/${block}$');d.replaceWith(c.content)})(document)</script>`;
+}
+
 export default Fraglates;
+
+// console.log("CONTEXT", context);
+// context.blocks[block][0] = cache[temp].tmp._blocks[block];
+
+// Override the getSuper function
+// context.getSuper = function getSuper(
+//   env,
+//   name,
+//   block,
+//   frame,
+//   runtime,
+//   cb
+// ) {
+//   console.log(this.blocks[name]);
+
+//   let idx = Array.prototype.indexOf.call(
+//     this.blocks[name] || [],
+//     block
+//   );
+
+//   // if (idx === -1) idx = 0;
+
+//   console.log(idx);
+
+//   let blk = this.blocks[name][idx + 1];
+//   let context = this;
+//   if (idx === -1 || !blk) {
+//     throw new Error('no super block available for "' + name + '"');
+//   }
+//   idx++;
+//   blk(env, context, frame, runtime, cb);
+// };

@@ -1,6 +1,6 @@
 {
   "name": "fraglates",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "An open source templating engine for generating server-side hypertext templates and fragments.",
   "main": "dist/index.js",
   "type": "module",
@@ -26,7 +26,6 @@
     "fraglates": "./dist/compiler.js"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3",
     "nunjucks": "^3.2.4"
   },
   "devDependencies": {
