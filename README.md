@@ -2,9 +2,11 @@
     <img src="https://raw.githubusercontent.com/getampt/fraglates/main/images/fraglates-logo.png" width="400" height="auto" alt="Fraglates"/>
 </div>
 
-An open source templating engine built on top of [Nunjucks](https://mozilla.github.io/nunjucks/) for generating server-side hypertext templates and fragments.
+---
 
-<hr />
+An open source templating engine built on top of [Nunjucks](https://mozilla.github.io/nunjucks/) for server-side rendering (SSR) hypertext templates and fragments. Includes support for precompiling, automatic caching, asynchronous filters and tags, and progressive rendering of templates with `Suspense`-like fallbacks using a single http request.
+
+---
 
 [![npm](https://img.shields.io/npm/v/fraglates.svg)](https://www.npmjs.com/package/fraglates)
 [![npm](https://img.shields.io/npm/l/fraglates.svg)](https://www.npmjs.com/package/fraglates)
@@ -28,19 +30,89 @@ const fraglates = new Fraglates({
   precompiled: "./precompiled", // precompile template directory (optional)
 });
 
-// Render the whole template
+// Render the whole template (template, context)
 const fullpage = await fraglates.render("my-template.html", {
-  title: 'My Dynamic Title'
-  items: ["one", "two", "three"]
+  title: "My Dynamic Title",
+  items: ["one", "two", "three"],
 });
 
-// Render just the #header fragment
+// Render just the #header fragment (template#fragment, context)
 const header = await fraglates.render("my-template.html#header", {
-  title: 'My Dynamic Title'
+  title: "My Dynamic Title",
 });
 ```
 
 > **Note:** Fraglates uses a caching mechanism on the returned instance. **DO NOT** destructure the `render` method or the caching will break (i.e. `const { render } = new Fraglates(...);`).
+
+## Progressive Rendering with ReadableStream
+
+Fraglates supports progressive rendering by generating a `ReadableStream` that can be streamed to the browser. The `stream()` method takes three arguments:
+
+- `template`: The template to render.
+- `context`: The data/variables passed to the template.
+- `blocks`: An object with block names for keys and asynchronous callbacks for values.
+
+The `blocks` object references any `{% block someBlock  %} ... {% endblock %}` blocks in the supplied `template`. These blocks will be rendered based on your template definition and streamed as soon as the initial template is rendered. Their output will be progressively replaced by the result of the async callback functions as they are resolved and added to the stream.
+
+```typescript
+// Render the whole template
+const stream = await fraglates.stream(
+  "my-template.html", // Template name
+  { title: "My Dynamic Title" }, // Context/variables
+  {
+    // Blocks
+    header: async () => {
+      // do some async stuff
+      return { headerText: "Resolved header" }; // return an object
+    },
+    someBlock: async () => {
+      // do some async stuff
+      return "This is a string"; // or return a string
+    },
+  }
+);
+```
+
+If the async callback function returns an `Object`, Fraglates will render the same fragment with the object merged into the main context.
+
+If the async callback returns a `string`, the block will be replaced by the string. You can use this to optional render different fragments to replace a block.
+
+### Streaming to the browser
+
+The `stream()` method returns a `ReadableStream` that can be sent to the browser using any modern framework. Here is an example using [Hono](https://hono.dev):
+
+```typescript
+import { Hono } from "hono";
+const app = new Hono();
+
+app.get("/stream-fraglates", (c) => {
+  // Render the whole template
+  const stream = await fraglates.stream(
+    "my-template.html", // Template name
+    { title: "My Dynamic Title" }, // Context/variables
+    {
+      // Blocks
+      header: async () => {
+        // do some async stuff
+        return { headerText: "Resolved header" }; // return an object
+      },
+      someBlock: async () => {
+        // do some async stuff
+        return "This is a string"; // or return a string
+      },
+    }
+  );
+
+  return c.body(stream, {
+    headers: {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Transfer-Encoding": "chunked",
+    },
+  });
+});
+
+app.fire();
+```
 
 ## Templating
 
@@ -257,6 +329,10 @@ app.get("/div", async (c) => {
   );
 });
 ```
+
+## Known issues
+
+Fragments cannot make `super()` calls when rendered independently. This has to do with the way Nunjucks processes template inheritance. A fix is actively being explored.
 
 ## Contributions & Feedback
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suspense Test</title>
+  </head>
+
+  <body>
+    <h1>Test Suspense: {{ foo }}</h1>
+
+    <!-- Block 1 -->
+
+    {% block suspense1 %}
+    <div>
+      <h1>Suspense 1...</h1>
+      <div>{{ test1 | default('loading...') }}</div>
+    </div>
+    {%- endblock %}
+
+    <!-- Block 2 -->
+
+    {% block suspense2 %}
+    <div>
+      <h1>Suspense 2...</h1>
+      <div>{{ test2 | default('loading...') }}</div>
+    </div>
+    {%- endblock %}
+
+    <!-- Block 3 -->
+
+    {% block suspense3 %}
+    <div>
+      <h1>Suspense 3...</h1>
+      <div>{{ test3 | default('loading...') }}</div>
+    </div>
+    {%- endblock %}
+  </body>
+
+</html>

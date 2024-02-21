@@ -4,7 +4,7 @@ import Fraglates from "../index";
 // process.env.BENCHMARK = "true";
 
 const getVar = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 200));
   return "async var";
 };
 
@@ -46,7 +46,7 @@ for (const loader in loaders) {
     return new Promise((res) => {
       setTimeout(() => {
         res("[(" + str + ")]");
-      }, 500);
+      }, 200);
     });
   });
 
@@ -64,7 +64,7 @@ for (const loader in loaders) {
   });
 
   fraglates.addTag("testAsyncTag", async (content, keywords, ...args) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     return `<div style="color:${keywords.color};">ASYNC:${content}</div>`;
   });
 
@@ -293,6 +293,21 @@ for (const loader in loaders) {
       expect(result).toBe(expected);
     });
 
+    it("should deep inherit a template", async () => {
+      const result = await fraglates.render("inherited-deep.html", {
+        header: "Test Header",
+        content: "Test Content",
+        footer: "Test Footer",
+        include: "Test Include",
+      });
+
+      const expected = fs.readFileSync(
+        `${renderedPath}/_simple-inherited-deep.html`,
+        "utf8"
+      );
+      expect(result).toBe(expected);
+    });
+
     it("should process macros", async () => {
       const result = await fraglates.render("macros.html", {});
 
@@ -316,6 +331,80 @@ for (const loader in loaders) {
         "utf8"
       );
       expect(result).toBe(expected);
+    });
+
+    it("should render suspense", async () => {
+      const stream = fraglates.stream(
+        "suspense.html",
+        {
+          foo: "bar",
+        },
+        {
+          // With delay
+          suspense1: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            return { test1: "LOADED" };
+          },
+          // Text response
+          suspense2: async () => {
+            return "This is a text response";
+          },
+          // Without delay
+          suspense3: () => {
+            return { test3: "ALSO LOADED" };
+          },
+        }
+      );
+
+      const decoder = new TextDecoder();
+      const reader = stream.getReader();
+      let result = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        result += decoder.decode(value);
+        if (done) break;
+      }
+
+      const expected = fs.readFileSync(
+        `${renderedPath}/_streamed.html`,
+        "utf8"
+      );
+      expect(result).toBe(expected);
+    });
+
+    it.skip("should render a fragment with a super call", async () => {
+      // This doesn't work yet since we bypass the standard render function
+      // Will need to figure out how to build up the blocks array for the super call
+      const result = await fraglates.render("inherited.html#footer", {
+        footer: "TEST",
+      });
+    });
+
+    it.skip("should render suspense with nested templates?", async () => {
+      // This also doesn't work because of the same reason as above
+      // If the function returns an object, it calls the fragment the same way
+      const stream = fraglates.stream(
+        "inherited-deep.html",
+        {
+          foo: "bar",
+          footer: "Test FooterX",
+        },
+        {
+          footer: async () => {
+            // await new Promise((resolve) => setTimeout(resolve, 500));
+            return { test1: "LOADED" };
+            // return "This is some text";
+          },
+        }
+      );
+
+      const decoder = new TextDecoder();
+      const reader = stream.getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        console.log(decoder.decode(value));
+        if (done) break;
+      }
     });
   });
 }
