@@ -1,7 +1,6 @@
 import nunjucks, { ILoaderAny, ILoaderAsync } from "nunjucks";
 import path from "path";
 import fs from "fs";
-import matter from "gray-matter";
 
 const ComparisonAsyncFunction = (async () => {}).constructor;
 
@@ -135,7 +134,6 @@ class Fraglates {
               let blk = this.blocks[name][idx];
               let context = this;
               if (idx === -1 || !blk) {
-                // console.log(name, idx, this.blocks[name][0].toString());
                 console.log(
                   "SUPER ERROR",
                   name,
@@ -150,10 +148,13 @@ class Fraglates {
 
             // Create a new callback
             const newCB = (err, res) => {
-              if (context.ctx.__resolved) {
+              if (
+                context.ctx.__fallback === false &&
+                context.__fragment === block
+              ) {
                 const content = wrapSuspense(block, res);
                 cb(err, content);
-              } else if (context.ctx.__blocks && context.ctx.__blocks[block]) {
+              } else if (context.__blocks && context.__blocks[block]) {
                 const content = wrapFallback(block, res);
                 cb(err, content);
               } else {
@@ -161,6 +162,17 @@ class Fraglates {
               }
             };
 
+            if (context.__blocks) {
+              // If the block is awaiting content, set the fallback flag
+              if (context.__blocks[block]) {
+                context.ctx.__fallback = true;
+              } else {
+                // If not, remove the fallback flag
+                delete context.ctx.__fallback;
+              }
+            }
+
+            // Render the block
             cache[temp].tmp._blocks[block](env, context, frame, runtime, newCB);
           };
         }
@@ -177,7 +189,10 @@ class Fraglates {
         ) {
           // If a fragment is found, render it
           if (context.ctx.__fragment) {
-            cache[temp].tmp.blocks[context.ctx.__fragment](
+            // Move the fragment context
+            context.__fragment = context.ctx.__fragment;
+            // Call the fragment block function
+            cache[temp].tmp.blocks[context.__fragment](
               env,
               context,
               frame,
@@ -186,6 +201,12 @@ class Fraglates {
             );
           } else {
             // Else, render the copied root render function
+
+            // Move the blocks to the main context
+            if (context.ctx.__blocks) {
+              context.__blocks = context.ctx.__blocks;
+              delete context.ctx.__blocks;
+            }
             cache[temp].tmp._rootRenderFunc(env, context, frame, runtime, cb);
           }
         };
@@ -289,10 +310,11 @@ class Fraglates {
             promise.then(async (res) => {
               // If the block returns an object, render the fragment with the object as context
               if (isObject(res)) {
+                const { __blocks, ...ctx } = context;
                 const output = await that.render([template, block].join("#"), {
-                  ...context, // Include the parent context
+                  ...ctx, // Include the parent context
                   ...res, // Include the returned block context
-                  __resolved: true, // Set the resolved flag
+                  __fallback: false, // Set the fallback flag
                 });
                 controller.enqueue(textEncoder.encode(output));
 
@@ -560,35 +582,3 @@ function wrapSuspense(block, content) {
 }
 
 export default Fraglates;
-
-// console.log("CONTEXT", context);
-// context.blocks[block][0] = cache[temp].tmp._blocks[block];
-
-// Override the getSuper function
-// context.getSuper = function getSuper(
-//   env,
-//   name,
-//   block,
-//   frame,
-//   runtime,
-//   cb
-// ) {
-//   console.log(this.blocks[name]);
-
-//   let idx = Array.prototype.indexOf.call(
-//     this.blocks[name] || [],
-//     block
-//   );
-
-//   // if (idx === -1) idx = 0;
-
-//   console.log(idx);
-
-//   let blk = this.blocks[name][idx + 1];
-//   let context = this;
-//   if (idx === -1 || !blk) {
-//     throw new Error('no super block available for "' + name + '"');
-//   }
-//   idx++;
-//   blk(env, context, frame, runtime, cb);
-// };

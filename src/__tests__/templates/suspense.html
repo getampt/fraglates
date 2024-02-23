@@ -34,6 +34,9 @@
     <div>
       <h1>Suspense 3...</h1>
       <div>{{ test3 | default('loading...') }}</div>
+      {% block nested -%}
+      <div>NESTED BLOCK: {{ nested | default('loading...') }}</div>
+      {%- endblock %}
     </div>
     {%- endblock %}
   </body>

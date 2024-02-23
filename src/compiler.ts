@@ -152,36 +152,45 @@ const render = (/** @type {string[]} */ files) => {
       return p.parseAsRoot();
     };
 
-    // Precompile the template to parse for any filters
-    const tmp = nunjucks.precompile(resolve(inputDir, file), {
-      env,
-    });
+    try {
+      // Precompile the template to parse for any filters
+      const tmp = nunjucks.precompile(resolve(inputDir, file), {
+        env,
+      });
 
-    let filters; // Find all the filters and indicate them as async
-    while ((filters = pattern.exec(tmp)) !== null) {
-      env.addFilter(filters[1], function () {}, true);
+      let filters; // Find all the filters and indicate them as async
+      while ((filters = pattern.exec(tmp)) !== null) {
+        env.addFilter(filters[1], function () {}, true);
+      }
+
+      // Recompile the template with async filters and wrapper
+      const res = nunjucks.precompile(resolve(inputDir, file), {
+        env,
+        name: file,
+        wrapper: (templates: any, opts) => {
+          return `const template = function() { ${templates[0].template} }();\n\nexport default template;`;
+        },
+      });
+
+      // Add the .js extension (TODO: make this configurable)
+      let outputFile = file + ".js"; //`.${argv.extension}`
+
+      // Create the output directory if it doesn't exist
+      if (outputDir) {
+        outputFile = resolve(outputDir, outputFile);
+        fs.mkdirSync(dirname(outputFile), { recursive: true });
+      }
+
+      console.log(chalk.blue("Rendering: " + file));
+      fs.writeFileSync(outputFile, res);
+    } catch (e) {
+      console.error(chalk.red("Error rendering template: " + file));
+      if (argv.watch) {
+        console.error(e.message);
+      } else {
+        throw new Error(e.message);
+      }
     }
-
-    // Recompile the template with async filters and wrapper
-    const res = nunjucks.precompile(resolve(inputDir, file), {
-      env,
-      name: file,
-      wrapper: (templates: any, opts) => {
-        return `const template = function() { ${templates[0].template} }();\n\nexport default template;`;
-      },
-    });
-
-    // Add the .js extension (TODO: make this configurable)
-    let outputFile = file + ".js"; //`.${argv.extension}`
-
-    // Create the output directory if it doesn't exist
-    if (outputDir) {
-      outputFile = resolve(outputDir, outputFile);
-      fs.mkdirSync(dirname(outputFile), { recursive: true });
-    }
-
-    console.log(chalk.blue("Rendering: " + file));
-    fs.writeFileSync(outputFile, res);
   }
 };
 

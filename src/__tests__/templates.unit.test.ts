@@ -351,7 +351,7 @@ for (const loader in loaders) {
           },
           // Without delay
           suspense3: () => {
-            return { test3: "ALSO LOADED" };
+            return { test3: "ALSO LOADED", nested: "LOADED" };
           },
         }
       );
