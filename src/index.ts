@@ -61,6 +61,13 @@ class Fraglates {
   }
 
   // Render a template function
+  async render(template: string, context: any): Promise<string>;
+  async render(
+    template: string,
+    context: any,
+    blocks: any
+  ): Promise<[string, any]>;
+
   async render(template: string, context: any, blocks?: any) {
     const templateParts = template.split("#");
     const temp = templateParts[0].trim();
@@ -271,7 +278,7 @@ class Fraglates {
   stream(
     template: string,
     context: any,
-    blocks?: any
+    blocks: any
   ): ReadableStream<Uint8Array> {
     const that = this;
     const textEncoder = new TextEncoder();

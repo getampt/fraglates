@@ -15,7 +15,7 @@
     <template id="fraglate:suspense1"></template>
     <div>
       <h1>Suspense 1...</h1>
-      <div>loading...</div>
+      <div>loading... | FALLBACK: true</div>
     </div>
 <!--/suspense1$-->
 
@@ -24,32 +24,40 @@
     <template id="fraglate:suspense2"></template>
     <div>
       <h1>Suspense 2...</h1>
-      <div>loading...</div>
+      <div>loading... | FALLBACK: true</div>
     </div>
 <!--/suspense2$-->
 
     <!-- Block 3 -->
 
-    <template id="fraglate:suspense3"></template>
+    
     <div>
       <h1>Suspense 3...</h1>
-      <div>loading...</div>
-      <div>NESTED BLOCK: loading...</div>
+      <div>loading... | FALLBACK: </div>
     </div>
-<!--/suspense3$-->
+
+    <!-- Block 4 -->
+
+    <template id="fraglate:suspense4"></template>
+    <div>
+      <h1>Suspense 4...</h1>
+      <div>loading... | FALLBACK: true</div>
+      <div>NESTED BLOCK: loading... | FALLBACK: </div>
+    </div>
+<!--/suspense4$-->
   
 
 
 <template data-fraglate-target="fraglate:suspense2">This is a text response</template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense2');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense2$');d.replaceWith(c.content)})(document)</script>
-<template data-fraglate-target="fraglate:suspense3">
+<template data-fraglate-target="fraglate:suspense4">
     <div>
-      <h1>Suspense 3...</h1>
-      <div>ALSO LOADED</div>
-      <div>NESTED BLOCK: LOADED</div>
-    </div></template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense3');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense3$');d.replaceWith(c.content)})(document)</script>
+      <h1>Suspense 4...</h1>
+      <div>ALSO LOADED | FALLBACK: false</div>
+      <div>NESTED BLOCK: LOADED | FALLBACK: false</div>
+    </div></template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense4');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense4$');d.replaceWith(c.content)})(document)</script>
 <template data-fraglate-target="fraglate:suspense1">
     <div>
       <h1>Suspense 1...</h1>
-      <div>LOADED</div>
+      <div>LOADED | FALLBACK: false</div>
     </div></template><script>((d,c,n) => { c=d.currentScript.previousSibling; d=d.getElementById('fraglate:suspense1');if(!d){return};do{n=d.nextSibling;n.remove()}while(n.nodeType!=8||n.nodeValue!='/suspense1$');d.replaceWith(c.content)})(document)</script>
 </body></html>

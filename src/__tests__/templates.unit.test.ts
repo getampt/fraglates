@@ -350,8 +350,8 @@ for (const loader in loaders) {
             return "This is a text response";
           },
           // Without delay
-          suspense3: () => {
-            return { test3: "ALSO LOADED", nested: "LOADED" };
+          suspense4: () => {
+            return { test4: "ALSO LOADED", nested: "LOADED" };
           },
         }
       );

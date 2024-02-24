@@ -77,6 +77,8 @@ If the async callback function returns an `Object`, Fraglates will render the sa
 
 If the async callback returns a `string`, the block will be replaced by the string. You can use this to optional render different fragments to replace a block.
 
+> Note that when blocks/fragments are rendered in the main template, they will contain an added `__fallback` variable set to a boolean value of `true`. This can be used to conditionally render content within the blocks. The `__fallback` value is scoped to the block, so any nested blocks will not inherit this value.
+
 ### Streaming to the browser
 
 The `stream()` method returns a `ReadableStream` that can be sent to the browser using any modern framework. Here is an example using [Hono](https://hono.dev):
