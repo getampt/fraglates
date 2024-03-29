@@ -160,6 +160,7 @@ const render = (/** @type {string[]} */ files) => {
 
       let filters; // Find all the filters and indicate them as async
       while ((filters = pattern.exec(tmp)) !== null) {
+        // console.log(filters[1]);
         env.addFilter(filters[1], function () {}, true);
       }
 
@@ -168,7 +169,10 @@ const render = (/** @type {string[]} */ files) => {
         env,
         name: file,
         wrapper: (templates: any, opts) => {
-          return `const template = function() { ${templates[0].template} }();\n\nexport default template;`;
+          return `const template = function() { ${templates[0].template.replace(
+            /^env\.getFilter\(/gm,
+            "env.getAsyncFilter("
+          )} }();\n\nexport default template;`;
         },
       });
 
