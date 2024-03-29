@@ -17,8 +17,8 @@ const getPromise = async (resolveTo) => {
 };
 
 const loaders = {
-  "file system": { templates: "./src/__tests__/templates" },
   precompiled: { precompiled: "./src/__tests__/precompiled" },
+  "file system": { templates: "./src/__tests__/templates" },
 };
 
 // Loop through each template loader type
@@ -310,7 +310,6 @@ for (const loader in loaders) {
 
     it("should process macros", async () => {
       const result = await fraglates.render("macros.html", {});
-
       const expected = fs.readFileSync(`${renderedPath}/_macros.html`, "utf8");
       expect(result).toBe(expected);
     });

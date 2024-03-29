@@ -53,6 +53,35 @@ class Fraglates {
       lstripBlocks: config.lstripBlocks || false,
     });
 
+    // @ts-ignore Override the getFilter function to allow for async filters
+    this.#env.getAsyncFilter = function (name) {
+      if (!this.filters[name]) {
+        throw new Error("filter not found: " + name);
+      }
+
+      // // Check if the filter is an async function
+      if (this.filters[name] instanceof ComparisonAsyncFunction) {
+        return this.filters[name];
+      } else {
+        // If not, wrap the function in an async function
+        const filter = this.filters[name];
+        return async function (...args) {
+          if (
+            args &&
+            args.length &&
+            typeof args[args.length - 1] === "function"
+          ) {
+            let cb = args.pop();
+            // @ts-ignore
+            let ret = filter.call(this, ...args);
+            cb(null, ret);
+          } else {
+            return filter.call(this, ...args);
+          }
+        };
+      }
+    };
+
     // Default raw function
     this.raw = typeof config.raw == "function" ? config.raw : (x) => x;
 
@@ -88,6 +117,9 @@ class Fraglates {
             resolve(tmp);
           });
         });
+
+        // Add precompiled flag
+        cache[temp].precompiled = !("tmplStr" in cache[temp].tmp);
 
         // Create a store for the blocks
         cache[temp].tmp._blocks = [];

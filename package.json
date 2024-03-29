@@ -8,7 +8,7 @@
     "jest": "NODE_OPTIONS=\"--no-warnings --experimental-vm-modules\" jest",
     "test": "npm run precompile && npm run jest",
     "build": "tsc && chmod +x ./dist/compiler.js",
-    "precompile": "fraglates '**/*.{html,njk}' -p ./src/__tests__/templates -o ./src/__tests__/precompiled",
+    "precompile": "./dist/compiler.js '**/*.{html,njk}' -p ./src/__tests__/templates -o ./src/__tests__/precompiled",
     "precompile-watch": "fraglates '**/*.{html,njk}' -p ./src/__tests__/templates -o ./src/__tests__/precompiled --watch",
     "prepare": "rm -rf dist && npm run build",
     "prepublishOnly": "npm run test",
@@ -27,7 +27,7 @@
     "fraglates": "./dist/compiler.js"
   },
   "dependencies": {
-    "nunjucks": "^3.2.4"
+    "nunjucks": "3.2.4"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
